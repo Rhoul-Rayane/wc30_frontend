@@ -1,0 +1,181 @@
+# 📜 Constitution du Projet : wc30_frontend (v2 — Finetuned)
+# Fichier de gouvernance projet pour agents de codage (Antigravity / Claude / Gemini)
+# NE PAS SUPPRIMER — Ce fichier pilote le comportement de l'IA sur tout le projet.
+
+---
+
+## 🎯 1. Mission
+
+Construire le site web public headless de la **Coupe du Monde FIFA 2030 — Maroc**,
+connecté en temps réel au SI de gestion événementielle (Odoo 19 Enterprise).
+
+Le livrable final est un **Projet de Fin d'Études (PFE)** universitaire :
+chaque choix technique doit pouvoir être justifié devant un jury.
+
+---
+
+## 💻 2. Stack (verrouillé — ne pas changer sans approbation)
+
+| Couche         | Technologie                 | Version   | Notes                                   |
+|:---------------|:----------------------------|:----------|:----------------------------------------|
+| Framework      | Next.js (App Router)        | 16.x      | Pas de Pages Router. SSR par défaut.    |
+| Langage        | TypeScript                  | 5.x       | `strict: true` dans tsconfig.           |
+| Styling        | Tailwind CSS                | 4.x       | PostCSS via `@tailwindcss/postcss`.     |
+| Animations     | Framer Motion               | —         | À installer au besoin. Pas d'Anime.js. |
+| Polices        | `next/font/google`          | —         | Outfit (titres) + Inter (corps).        |
+| Icônes         | Lucide React                | —         | À installer au besoin. Pas d'heroicons. |
+| Backend comms  | Fetch API → JSON-RPC        | —         | Via `lib/odoo.ts`. Pas d'Axios.         |
+| QR scanner     | html5-qrcode               | —         | Pour le portail `/scan`.                |
+
+> **Règle** : Ne jamais installer un paquet sans raison documentée dans le commit.
+> Si une dépendance n'est pas dans ce tableau, demander confirmation.
+
+---
+
+## 🎨 3. Design System
+
+### Palette de couleurs (HSL, Tailwind tokens)
+
+| Rôle           | Classe Tailwind              | Hex approx.  | Quand l'utiliser                        |
+|:---------------|:-----------------------------|:-------------|:----------------------------------------|
+| Fond page      | `bg-neutral-950`             | `#0a0a0a`    | `<body>` et conteneurs pleine page.     |
+| Fond carte     | `bg-zinc-900/70`             | `#18181b`    | Cartes, panneaux glassmorphiques.       |
+| Bordure subtle | `border-zinc-700/40`         | —            | Séparateurs, bordures de cartes.        |
+| Primaire       | `text-emerald-400`           | `#34d399`    | CTAs, liens, états actifs.              |
+| Primaire fond  | `bg-emerald-500`             | `#10b981`    | Boutons principaux, badges actifs.      |
+| Accent doré    | `text-amber-400`             | `#fbbf24`    | Labels premium, scores, étoiles.        |
+| Texte clair    | `text-zinc-100`              | `#f4f4f5`    | Titres, texte principal.                |
+| Texte muted    | `text-zinc-400`              | `#a1a1aa`    | Sous-titres, dates, métadonnées.        |
+| Danger         | `text-red-400`               | `#f87171`    | Erreurs, incidents critiques.           |
+
+### Typographie
+
+- **Titres** : Outfit, font-weight 700, tailles `text-4xl` à `text-6xl`.
+- **Corps** : Inter ou Geist (déjà installé), font-weight 400, `text-base`.
+- **Mono** : Geist Mono (déjà installé), pour les codes de billets et IDs.
+
+### Effets visuels obligatoires
+
+| Effet               | Implémentation                                                          |
+|:---------------------|:------------------------------------------------------------------------|
+| Glassmorphism        | `bg-zinc-900/60 backdrop-blur-xl border border-zinc-700/30 rounded-2xl` |
+| Glow hover           | `hover:shadow-emerald-500/20 hover:shadow-lg transition-shadow`         |
+| Gradient hero        | `bg-gradient-to-b from-emerald-900/20 via-neutral-950 to-neutral-950`   |
+| Micro-animation      | Framer Motion `initial/animate/whileHover` sur les cartes.              |
+| Smooth transitions   | `transition-all duration-300 ease-out` sur tous les éléments cliquables.|
+
+> **Principe** : Sobre et immersif. On construit un événement mondial, pas un dashboard SaaS.
+> Chaque page doit donner l'impression d'un site officiel FIFA, pas d'un template gratuit.
+
+---
+
+## 📂 4. Architecture fichier (à respecter strictement)
+
+```
+wc30_frontend/
+├── app/
+│   ├── layout.tsx            # RootLayout : polices, métadonnées, <html lang="fr">
+│   ├── page.tsx              # Hero d'accueil + highlights matchs + stats live
+│   ├── globals.css           # Tailwind @import + variables CSS custom
+│   ├── matches/
+│   │   └── page.tsx          # Grille de matchs FIFA (filtrable par stade/date)
+│   ├── stadiums/
+│   │   └── page.tsx          # Cartes des 6 stades marocains avec photos
+│   ├── volunteer/
+│   │   ├── register/
+│   │   │   └── page.tsx      # Formulaire d'inscription multi-étapes
+│   │   └── dashboard/
+│   │       └── page.tsx      # Planning shifts + profil (authentifié)
+│   ├── scan/
+│   │   └── page.tsx          # Scanner QR via caméra (html5-qrcode)
+│   ├── tickets/
+│   │   └── page.tsx          # Grilles tarifaires + achat simulé
+│   └── dashboard/
+│       └── page.tsx          # KPIs publics décisionnels (graphiques)
+│
+├── components/
+│   ├── ui/                   # Primitives réutilisables (Button, Card, Badge, Input)
+│   ├── layout/               # Navbar, Footer, Sidebar
+│   └── features/             # Composants métier (MatchCard, StadiumMap, VolunteerForm)
+│
+├── lib/
+│   ├── odoo.ts               # Client JSON-RPC générique (callOdoo, authenticate)
+│   ├── types.ts              # Interfaces TypeScript mappées sur les modèles Odoo
+│   └── utils.ts              # Fonctions utilitaires (formatDate, formatCurrency)
+│
+├── public/
+│   └── images/               # Logos, photos de stades, drapeaux
+│
+├── .env.local                # NEXT_PUBLIC_ODOO_URL, ODOO_DB, ODOO_API_USER, ODOO_API_PASSWORD
+├── gemini.mmd                # Constitution v1 (originale, ne pas modifier)
+└── gemini_v2.mmd             # ← CE FICHIER (version améliorée)
+```
+
+---
+
+## 🔌 5. Modèles Odoo exposés (API surface du backend)
+
+Le frontend communique **exclusivement** via JSON-RPC `execute_kw`.
+Voici les modèles Odoo que le frontend est autorisé à requêter :
+
+| Modèle Odoo               | Usage frontend                        | Méthodes autorisées          |
+|:---------------------------|:--------------------------------------|:-----------------------------|
+| `wc.match`                 | Liste des matchs, scores, calendrier  | `search_read`, `read`        |
+| `wc.stadium`               | Fiches stades, capacité, GPS          | `search_read`, `read`        |
+| `wc.stadium.zone`          | Zones dans un stade                   | `search_read`                |
+| `wc.team`                  | Équipes nationales, drapeaux          | `search_read`, `read`        |
+| `wc.tournament`            | Données historiques des coupes        | `search_read`                |
+| `wc.volunteer`             | Inscription, profil, planning         | `search_read`, `create`, `write` |
+| `wc.volunteer.skill`       | Compétences d'un volontaire           | `search_read`                |
+| `wc.volunteer.role`        | Rôles disponibles                     | `search_read`                |
+| `wc.accreditation`         | Validation de badges (scan QR)        | `search_read`, `read`        |
+| `wc.ticket`                | Billets et validation                 | `search_read`, `read`        |
+| `wc.ticket.pricing`        | Grilles tarifaires publiques          | `search_read`                |
+| `wc.budget.line`           | Données budget (dashboard public)     | `search_read`                |
+| `wc.revenue.stream`        | Flux de revenus (dashboard public)    | `search_read`                |
+| `wc.dashboard`             | KPIs agrégés                          | `read` (singleton)           |
+
+> **Interdit** : Ne jamais appeler `unlink` depuis le frontend.
+> **Interdit** : Ne jamais afficher de données sensibles (incidents sécurité, mots de passe).
+
+---
+
+## 🚦 6. Règles impératives pour les agents de codage
+
+### Architecture & Code
+
+1. **Un fichier = une responsabilité.** Pas de composant de 500 lignes. Extraire.
+2. **Server Components par défaut.** Ne mettre `"use client"` que si le composant a du state, des effets, ou des event handlers.
+3. **Pas de `any` en TypeScript.** Typer chaque prop, chaque réponse API, chaque state.
+4. **JSON-RPC uniquement via `lib/odoo.ts`.** Pas de `fetch('/jsonrpc')` inline dans les composants.
+5. **Variables d'environnement pour TOUT secret.** Mot de passe Odoo, URLs, clés API → `.env.local`.
+6. **Commentaires en français.** Ce projet est un PFE en français. Les noms de variables restent en anglais.
+
+### Design & UI
+
+7. **Dark mode uniquement.** Pas de light mode toggle. Le fond est `neutral-950`, point final.
+8. **Glassmorphism sur chaque carte.** Utiliser le pattern : `bg-zinc-900/60 backdrop-blur-xl border border-zinc-700/30 rounded-2xl`.
+9. **Animations sur chaque interaction.** Hover → scale ou glow. Apparition → fade-in slide-up.
+10. **Pas d'images placeholder.** Si une image est nécessaire, utiliser `generate_image` ou une photo de stade réelle.
+11. **Responsive obligatoire.** Chaque page doit être testée visuellement en mobile (375px) et desktop (1440px).
+
+### Processus
+
+12. **Un commit par fonctionnalité.** Message format : `feat: add match listing page`, `fix: correct QR scan validation`.
+13. **Tester `npm run build` après chaque modification significative.** Pas de code mort, pas de warnings ignorés.
+14. **Ne jamais modifier `gemini.mmd` (v1).** Ce fichier est archivé. Les mises à jour vont dans `gemini_v2.mmd`.
+
+---
+
+## ✅ 7. Checklist de validation par page
+
+Avant de considérer une page comme terminée, vérifier :
+
+- [ ] Le titre `<title>` est unique et descriptif (pas "Create Next App").
+- [ ] La `<meta description>` est renseignée.
+- [ ] Un seul `<h1>` par page.
+- [ ] Le contraste texte/fond passe WCAG AA (ratio ≥ 4.5:1).
+- [ ] Les éléments interactifs ont des `id` uniques.
+- [ ] La page est fonctionnelle sans JavaScript (SSR content visible).
+- [ ] Le chargement initial est < 3 secondes sur 3G simulé.
+- [ ] Les animations ne déclenchent pas de layout shift (CLS < 0.1).
