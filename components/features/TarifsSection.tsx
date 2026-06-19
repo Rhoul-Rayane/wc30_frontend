@@ -112,9 +112,9 @@ export default function TarifsSection({ onNavigateToBooking }: TarifsSectionProp
         <span className="text-xs font-semibold uppercase tracking-widest text-[#fbbf24] bg-[#fbbf24]/10 px-3.5 py-1 rounded-full mb-3 inline-block">
           💰 Guide des Grilles Tarifaires
         </span>
-        <h2 className="text-3xl md:text-5xl font-display font-extrabold text-white mb-3 tracking-tight">
+        <h1 className="text-3xl md:text-5xl font-display font-extrabold text-white mb-3 tracking-tight">
           Billetterie & Tarifs 🎫
-        </h2>
+        </h1>
         <p className="text-sm md:text-base text-zinc-400 max-w-2xl mx-auto">
           Tous les prix en Dirhams Marocains (MAD) — Remises résidents et étudiants disponibles.
         </p>
@@ -138,7 +138,7 @@ export default function TarifsSection({ onNavigateToBooking }: TarifsSectionProp
                   setActivePhaseId(phase.id);
                   setSelectedMobileCell(null);
                 }}
-                className={`px-5 py-3 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition-all duration-300 snap-center shrink-0 cursor-pointer relative ${
+                className={`px-5 py-3 rounded-xl font-display font-bold text-xs uppercase tracking-wider transition-all duration-300 snap-center shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 relative ${
                   isActive 
                     ? 'bg-[#34d399] text-[#0a0a0a] shadow-[0_4px_12px_rgba(52,211,153,0.3)]' 
                     : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
@@ -203,6 +203,9 @@ export default function TarifsSection({ onNavigateToBooking }: TarifsSectionProp
                       return (
                         <td 
                           key={catIdx} 
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`Tarifs pour ${stad.name}, Catégorie ${catIdx + 1}`}
                           onClick={() => {
                             if (selectedMobileCell?.stadiumIndex === stadIdx && selectedMobileCell?.colIndex === catIdx) {
                               setSelectedMobileCell(null);
@@ -210,7 +213,17 @@ export default function TarifsSection({ onNavigateToBooking }: TarifsSectionProp
                               setSelectedMobileCell({ stadiumIndex: stadIdx, colIndex: catIdx });
                             }
                           }}
-                          className="py-4 px-2 text-center relative group cursor-pointer transition-colors hover:bg-zinc-900/60"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              if (selectedMobileCell?.stadiumIndex === stadIdx && selectedMobileCell?.colIndex === catIdx) {
+                                setSelectedMobileCell(null);
+                              } else {
+                                setSelectedMobileCell({ stadiumIndex: stadIdx, colIndex: catIdx });
+                              }
+                            }
+                          }}
+                          className="py-4 px-2 text-center relative group cursor-pointer transition-colors hover:bg-zinc-900/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 rounded-lg"
                         >
                           <div className="font-mono font-black text-[#fbbf24] text-xs md:text-base">
                             {formatNumber(computed.normal)} <span className="text-[9px] font-normal text-zinc-500">MAD</span>

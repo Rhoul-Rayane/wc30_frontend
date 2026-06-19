@@ -139,9 +139,9 @@ export default function TicketsSection({
         <span className="text-xs font-semibold uppercase tracking-widest text-[#34d399] bg-[#34d399]/10 px-3.5 py-1 rounded-full mb-3 inline-block">
           🎫 Billetterie Securisée
         </span>
-        <h2 className="text-3xl md:text-5xl font-display font-extrabold text-white mb-3">
+        <h1 className="text-3xl md:text-5xl font-display font-extrabold text-white mb-3">
           RÉSERVEZ VOS PLACES
-        </h2>
+        </h1>
         <p className="text-sm md:text-base text-zinc-400 max-w-2xl mx-auto">
           Sélectionnez votre match d'exception, choisissez votre catégorie de tribune et appliquez les tarifs préférentiels résidents/étudiants agréés.
         </p>
@@ -156,11 +156,13 @@ export default function TicketsSection({
             </h3>
 
             {/* Error alerts */}
-            {errorBox && (
-              <div className="p-3 bg-red-400/10 border border-red-500/40 text-[#f87171] rounded-xl text-xs font-medium uppercase tracking-wide">
-                <span>⚠️ Erreur :</span> {errorBox}
-              </div>
-            )}
+            <div aria-live="polite">
+              {errorBox && (
+                <div className="p-3 bg-red-400/10 border border-red-500/40 text-[#f87171] rounded-xl text-xs font-medium uppercase tracking-wide">
+                  <span>⚠️ Erreur :</span> {errorBox}
+                </div>
+              )}
+            </div>
 
             {/* Step 1: Sélection Match */}
             <div>
@@ -174,7 +176,7 @@ export default function TicketsSection({
                   const m = DEMO_MATCHES.find(dm => dm.id === e.target.value);
                   if (m) setSelectedMatch(m);
                 }}
-                className="w-full px-3 py-3 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm cursor-pointer"
+                className="w-full px-3 py-3 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm cursor-pointer"
               >
                 {DEMO_MATCHES.map((match) => (
                   <option key={match.id} value={match.id} disabled={match.homeTeam === 'TBD'} className="bg-[#121214]">
@@ -199,8 +201,17 @@ export default function TicketsSection({
                     <div
                       id={`ticket-cat-${category.id}`}
                       key={category.id}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
                       onClick={() => setSelectedCategory(category)}
-                      className={`glass-panel border rounded-xl p-3.5 cursor-pointer hover-glow text-left transition-all ${
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setSelectedCategory(category);
+                        }
+                      }}
+                      className={`glass-panel border rounded-xl p-3.5 cursor-pointer hover-glow text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
                         isSelected
                           ? "border-[#34d399] bg-[#34d399]/5"
                           : "border-zinc-800"
@@ -235,7 +246,7 @@ export default function TicketsSection({
                     id="qty-decrement"
                     type="button"
                     onClick={() => quantity > 1 && setQuantity(quantity - 1)}
-                    className="w-10 h-10 rounded-xl bg-zinc-800/80 hover:bg-[#34d399]/20 hover:text-[#34d399] border border-zinc-700/40 font-bold active:scale-95 transition-all text-sm cursor-pointer"
+                    className="w-10 h-10 rounded-xl bg-zinc-800/80 hover:bg-[#34d399]/20 hover:text-[#34d399] border border-zinc-700/40 font-bold active:scale-95 transition-all text-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
                   >
                     -
                   </button>
@@ -246,7 +257,7 @@ export default function TicketsSection({
                     id="qty-increment"
                     type="button"
                     onClick={() => quantity < 10 && setQuantity(quantity + 1)}
-                    className="w-10 h-10 rounded-xl bg-zinc-800/80 hover:bg-[#34d399]/20 hover:text-[#34d399] border border-zinc-700/40 font-bold active:scale-95 transition-all text-sm cursor-pointer"
+                    className="w-10 h-10 rounded-xl bg-zinc-800/80 hover:bg-[#34d399]/20 hover:text-[#34d399] border border-zinc-700/40 font-bold active:scale-95 transition-all text-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
                   >
                     +
                   </button>
@@ -262,7 +273,7 @@ export default function TicketsSection({
                   id="ticket-discount-select"
                   value={selectedDiscount}
                   onChange={(e) => setSelectedDiscount(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm cursor-pointer"
+                  className="w-full px-3 py-2.5 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm cursor-pointer"
                 >
                   {DISCOUNT_OPTIONS.map((opt) => (
                     <option key={opt.id} value={opt.id} className="bg-[#121214]">
@@ -286,7 +297,7 @@ export default function TicketsSection({
                   placeholder="Nom & Prénom"
                   value={holderName}
                   onChange={(e) => setHolderName(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] transition-all text-xs"
+                  className="w-full px-3 py-2.5 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-xs"
                 />
                 <input
                   id="holder-phone-input"
@@ -294,7 +305,7 @@ export default function TicketsSection({
                   placeholder="N° Mobile (Ex: +212...)"
                   value={holderPhone}
                   onChange={(e) => setHolderPhone(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] transition-all text-xs"
+                  className="w-full px-3 py-2.5 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-xs"
                 />
               </div>
             </div>
@@ -322,7 +333,7 @@ export default function TicketsSection({
                   type="checkbox"
                   checked={isAgreed}
                   onChange={(e) => setIsAgreed(e.target.checked)}
-                  className="mt-0.5 rounded accent-[#34d399] bg-black border-zinc-700 focus:ring-[#34d399] focus:ring-offset-[#0a0a0a]"
+                  className="mt-0.5 rounded accent-[#34d399] bg-black border-zinc-700 focus:ring-[#34d399] focus:ring-offset-[#0a0a0a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
                 />
                 <span className="text-[10px] text-zinc-500 leading-tight">
                   Je certifie l'exactitude des informations encodées et accepte sans réserves le règlement intérieur des stades FIFA Coupe du Monde 2030.
@@ -334,7 +345,7 @@ export default function TicketsSection({
             <button
               id="buy-btn"
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#34d399] to-[#10b981] font-display font-bold text-[#0a0a0a] hover:opacity-95 text-sm uppercase tracking-wider cursor-pointer shadow-[0_4px_12px_rgba(52,211,153,0.15)] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#34d399] to-[#10b981] font-display font-bold text-[#0a0a0a] hover:opacity-95 text-sm uppercase tracking-wider cursor-pointer shadow-[0_4px_12px_rgba(52,211,153,0.15)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
             >
               🔒 Payer & Générer mon Billet
             </button>
@@ -342,7 +353,7 @@ export default function TicketsSection({
         </div>
 
         {/* Generated dynamic ticket preview */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5" aria-live="polite">
           {activeTicket ? (
             <div className="flex flex-col gap-4 animate-slide-up">
               {/* Receipt Alert */}
@@ -471,7 +482,7 @@ export default function TicketsSection({
                 onClick={() => {
                   onNavigateToScanner();
                 }}
-                className="w-full py-2.5 rounded-xl bg-[#fbbf24] text-[#0a0a0a] hover:bg-[#fbbf24]/90 font-display font-semibold transition-all text-xs flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(251,191,36,0.2)] active:scale-[0.98]"
+                className="w-full py-2.5 rounded-xl bg-[#fbbf24] text-[#0a0a0a] hover:bg-[#fbbf24]/90 font-display font-semibold transition-all text-xs flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(251,191,36,0.2)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
               >
                 📲 Envoyer ce billet vers le scanneur QR 💥
               </button>

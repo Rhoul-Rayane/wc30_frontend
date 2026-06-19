@@ -37,7 +37,7 @@ export default function Navbar() {
         <Link
           id="nav-logo"
           href="/"
-          className="font-display font-black text-lg tracking-wider text-white flex items-center gap-1.5 focus:outline-none cursor-pointer hover:opacity-90 active:scale-95 transition-all"
+          className="font-display font-black text-lg tracking-wider text-white flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded px-1.5 py-0.5 cursor-pointer hover:opacity-90 active:scale-95 transition-all"
         >
           WC 2030 <span className="text-[#34d399] filter drop-shadow">🏆</span>
         </Link>
@@ -51,7 +51,7 @@ export default function Navbar() {
                 key={idx}
                 id={`nav-${link.label.toLowerCase()}`}
                 href={link.href}
-                className={`py-1 cursor-pointer transition-all hover:text-[#34d399] relative ${
+                className={`py-1 px-1.5 cursor-pointer transition-all hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded relative ${
                   isActive ? "text-[#34d399] font-bold" : ""
                 }`}
               >
@@ -71,7 +71,7 @@ export default function Navbar() {
             id="nav-scanner"
             href="/scan"
             title="Contrôle des Accès Securisés"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl cursor-pointer font-display font-bold text-xs uppercase tracking-widest transition-all duration-300 border ${
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl cursor-pointer font-display font-bold text-xs uppercase tracking-widest transition-all duration-300 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] ${
               pathname === "/scan"
                 ? "bg-[#34d399] text-[#0a0a0a] border-white shadow-[0_0_15px_rgba(52,211,153,0.3)]"
                 : "bg-zinc-800/60 border-zinc-700/60 text-white hover:bg-zinc-700/80"
@@ -84,7 +84,7 @@ export default function Navbar() {
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex md:hidden text-zinc-400 hover:text-white p-1"
+            className="flex md:hidden text-zinc-400 hover:text-white p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded-lg"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -98,7 +98,7 @@ export default function Navbar() {
       >
         <Link
           href="/matches"
-          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] transition-all ${
+          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded transition-all ${
             pathname === "/matches" ? "text-[#34d399]" : ""
           }`}
         >
@@ -107,7 +107,7 @@ export default function Navbar() {
         </Link>
         <Link
           href="/stadiums"
-          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] transition-all ${
+          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded transition-all ${
             pathname === "/stadiums" ? "text-[#34d399]" : ""
           }`}
         >
@@ -116,7 +116,7 @@ export default function Navbar() {
         </Link>
         <Link
           href="/tickets?tab=tarifs"
-          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] transition-all ${
+          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded transition-all ${
             pathname === "/tickets" && activeTabParam === "tarifs" ? "text-[#34d399]" : ""
           }`}
         >
@@ -125,7 +125,7 @@ export default function Navbar() {
         </Link>
         <Link
           href="/tickets?tab=billets"
-          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] transition-all ${
+          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded transition-all ${
             pathname === "/tickets" && activeTabParam !== "tarifs" ? "text-[#34d399]" : ""
           }`}
         >
@@ -134,7 +134,7 @@ export default function Navbar() {
         </Link>
         <Link
           href="/volunteer/register"
-          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] transition-all ${
+          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded transition-all ${
             pathname.startsWith("/volunteer") ? "text-[#34d399]" : ""
           }`}
         >
@@ -153,7 +153,7 @@ export default function Navbar() {
                 key={idx}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`py-2 px-4 rounded-lg transition-all hover:text-[#34d399] ${
+                className={`py-2 px-4 rounded-lg transition-all hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] ${
                   isActive ? "bg-zinc-900 text-[#34d399] font-bold" : ""
                 }`}
               >

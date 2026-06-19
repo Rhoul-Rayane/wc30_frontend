@@ -299,9 +299,9 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
         <span className="text-xs font-semibold uppercase tracking-widest text-[#34d399] bg-[#34d399]/10 px-4 py-1.5 rounded-full mb-3 inline-block">
           🤝 Programme des Volontaires Coupe du Monde 2030
         </span>
-        <h2 className="text-3xl md:text-5xl font-display font-extrabold text-white mb-3 tracking-tight">
+        <h1 className="text-3xl md:text-5xl font-display font-extrabold text-white mb-3 tracking-tight">
           Deviens Volontaire 🤝
-        </h2>
+        </h1>
         <p className="text-sm md:text-base text-zinc-400 max-w-2xl mx-auto leading-relaxed">
           Rejoins 5 000 bénévoles du monde entier pour vivre l'événement de l'intérieur au Maroc, Espagne et Portugal.
         </p>
@@ -422,7 +422,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   placeholder="Ex: Youssef Benjelloun"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm shadow-inner"
+                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner"
                 />
               </div>
 
@@ -436,7 +436,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   placeholder="Ex: youssef@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm shadow-inner"
+                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner"
                 />
               </div>
 
@@ -449,7 +449,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   placeholder="Ex: +212 661-234567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm shadow-inner"
+                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner"
                 />
               </div>
 
@@ -463,7 +463,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                     required
                     value={birthDate}
                     onChange={(e) => setBirthDate(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm cursor-pointer shadow-inner [color-scheme:dark]"
+                    className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm cursor-pointer shadow-inner [color-scheme:dark]"
                   />
                 </div>
 
@@ -475,7 +475,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                     <button
                       type="button"
                       onClick={() => setGender('Homme')}
-                      className={`py-3 rounded-xl font-medium text-xs uppercase tracking-wider transition-all border ${
+                      className={`py-3 rounded-xl font-medium text-xs uppercase tracking-wider transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
                         gender === 'Homme' 
                           ? 'border-[#34d399] bg-[#34d399]/10 text-white font-bold' 
                           : 'border-zinc-800 bg-black/30 text-zinc-500 hover:border-zinc-700'
@@ -486,7 +486,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                     <button
                       type="button"
                       onClick={() => setGender('Femme')}
-                      className={`py-3 rounded-xl font-medium text-xs uppercase tracking-wider transition-all border ${
+                      className={`py-3 rounded-xl font-medium text-xs uppercase tracking-wider transition-all border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
                         gender === 'Femme' 
                           ? 'border-[#34d399] bg-[#34d399]/10 text-white font-bold' 
                           : 'border-zinc-800 bg-black/30 text-zinc-500 hover:border-zinc-700'
@@ -512,7 +512,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                     placeholder="Ex: Marocaine"
                     value={nationality}
                     onChange={(e) => setNationality(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm shadow-inner"
+                    className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner"
                   />
                 </div>
 
@@ -526,7 +526,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                     placeholder="Ex: AB123456"
                     value={docNumber}
                     onChange={(e) => setDocNumber(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm shadow-inner"
+                    className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner"
                   />
                 </div>
               </div>
@@ -540,7 +540,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm font-sans shadow-inner resize-none"
+                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm font-sans shadow-inner resize-none"
                 />
               </div>
 
@@ -567,7 +567,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                       type="button"
                       onClick={removePhoto}
                       title="Supprimer la photo"
-                      className="p-1 px-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-lg text-xs font-bold transition-all"
+                      className="p-1 px-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white rounded-lg text-xs font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -608,14 +608,14 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
             <button
               type="button"
               onClick={() => onNavigate ? onNavigate('accueil') : handleResetForm()}
-              className="px-5 py-3 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all font-semibold uppercase tracking-wider text-xs cursor-pointer flex items-center gap-2"
+              className="px-5 py-3 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all font-semibold uppercase tracking-wider text-xs cursor-pointer flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
             >
               Annuler
             </button>
             <button
               type="button"
               onClick={handleNextStep}
-              className="px-6 py-3 rounded-xl bg-[#34d399] text-[#0a0a0a] hover:bg-[#34d399]/90 font-bold uppercase tracking-wider text-xs cursor-pointer shadow-[0_0_15px_rgba(52,211,153,0.15)] flex items-center gap-2 active:scale-95 transition-all"
+              className="px-6 py-3 rounded-xl bg-[#34d399] text-[#0a0a0a] hover:bg-[#34d399]/90 font-bold uppercase tracking-wider text-xs cursor-pointer shadow-[0_0_15px_rgba(52,211,153,0.15)] flex items-center gap-2 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
             >
               Suivant <ArrowRight className="w-4 h-4" />
             </button>
@@ -645,7 +645,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                       key={skill}
                       type="button"
                       onClick={() => toggleSkill(skill)}
-                      className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer select-none ${
+                      className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
                         isSelected 
                           ? 'bg-[#34d399] text-[#0a0a0a] border-[#34d399] shadow-[0_0_10px_rgba(52,211,153,0.25)]' 
                           : 'bg-black/40 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white'
@@ -682,7 +682,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                       key={lang}
                       type="button"
                       onClick={() => toggleLanguage(lang)}
-                      className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer select-none ${
+                      className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
                         isSelected 
                           ? 'bg-[#fbbf24]/20 border-[#fbbf24]/70 text-[#fbbf24]' 
                           : 'bg-black/40 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-white'
@@ -713,7 +713,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   type="checkbox"
                   checked={hasLicense}
                   onChange={(e) => setHasLicense(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-800 text-[#34d399] accent-[#34d399] cursor-pointer"
+                  className="w-4 h-4 rounded border-zinc-800 text-[#34d399] accent-[#34d399] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
                 />
                 <div className="text-left">
                   <span className="font-bold">Permis de conduire 🚗</span>
@@ -726,7 +726,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   type="checkbox"
                   checked={hasVehicle}
                   onChange={(e) => setHasVehicle(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-800 text-[#34d399] accent-[#34d399] cursor-pointer"
+                  className="w-4 h-4 rounded border-zinc-800 text-[#34d399] accent-[#34d399] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
                 />
                 <div className="text-left">
                   <span className="font-bold">Véhicule personnel 🚘</span>
@@ -739,7 +739,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   type="checkbox"
                   checked={hasFirstAid}
                   onChange={(e) => setHasFirstAid(e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-800 text-[#34d399] accent-[#34d399] cursor-pointer"
+                  className="w-4 h-4 rounded border-zinc-800 text-[#34d399] accent-[#34d399] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
                 />
                 <div className="text-left">
                   <span className="font-bold">Formation premiers secours 🩺</span>
@@ -762,7 +762,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                       key={level}
                       type="button"
                       onClick={() => setEducationLevel(level)}
-                      className={`py-3 px-2.5 rounded-xl text-center text-[11px] font-bold uppercase transition-all border cursor-pointer select-none ${
+                      className={`py-3 px-2.5 rounded-xl text-center text-[11px] font-bold uppercase transition-all border cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
                         isLevelSelected 
                           ? 'border-[#34d399] bg-[#34d399]/10 text-white' 
                           : 'border-zinc-800 bg-black/30 text-zinc-500 hover:border-zinc-700'
@@ -785,7 +785,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                 value={pastExperience}
                 onChange={(e) => setPastExperience(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm font-sans shadow-inner resize-none"
+                className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm font-sans shadow-inner resize-none"
               />
             </div>
 
@@ -796,14 +796,14 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
             <button
               type="button"
               onClick={handlePreviousStep}
-              className="px-5 py-3 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all font-semibold uppercase tracking-wider text-xs cursor-pointer flex items-center gap-2"
+              className="px-5 py-3 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all font-semibold uppercase tracking-wider text-xs cursor-pointer flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
             >
               <ArrowLeft className="w-4 h-4" /> Retour
             </button>
             <button
               type="button"
               onClick={handleNextStep}
-              className="px-6 py-3 rounded-xl bg-[#34d399] text-[#0a0a0a] hover:bg-[#34d399]/90 font-bold uppercase tracking-wider text-xs cursor-pointer shadow-[0_0_15px_rgba(52,211,153,0.15)] flex items-center gap-2 active:scale-95 transition-all"
+              className="px-6 py-3 rounded-xl bg-[#34d399] text-[#0a0a0a] hover:bg-[#34d399]/90 font-bold uppercase tracking-wider text-xs cursor-pointer shadow-[0_0_15px_rgba(52,211,153,0.15)] flex items-center gap-2 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
             >
               Suivant <ArrowRight className="w-4 h-4" />
             </button>
@@ -838,8 +838,17 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   return (
                     <div
                       key={slot.id}
+                      role="radio"
+                      aria-checked={isSelected}
+                      tabIndex={0}
                       onClick={() => setAvailability(slot.id)}
-                      className={`p-5 rounded-2xl border cursor-pointer select-none text-center transition-all flex flex-col items-center justify-center gap-2 ${
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setAvailability(slot.id);
+                        }
+                      }}
+                      className={`p-5 rounded-2xl border cursor-pointer select-none text-center transition-all flex flex-col items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
                         isSelected 
                           ? 'border-[#34d399] bg-[#34d399]/10 text-white shadow-[0_0_20px_rgba(52,211,153,0.2)] scale-102' 
                           : 'border-zinc-800 bg-black/40 text-zinc-400 hover:border-zinc-700 hover:text-white'
@@ -869,7 +878,7 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                 <select
                   value={preferredStadium}
                   onChange={(e) => setPreferredStadium(e.target.value)}
-                  className="w-full px-4 py-3.5 pr-10 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] transition-all text-sm cursor-pointer shadow-inner appearance-none font-display font-bold"
+                  className="w-full px-4 py-3.5 pr-10 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm cursor-pointer shadow-inner appearance-none font-display font-bold"
                 >
                   {stadiumOptions.map((stadium) => (
                     <option key={stadium} value={stadium} className="bg-[#0e0e11] font-sans">
@@ -902,13 +911,13 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
             <button
               type="button"
               onClick={handlePreviousStep}
-              className="px-5 py-3 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all font-semibold uppercase tracking-wider text-xs cursor-pointer flex items-center gap-2"
+              className="px-5 py-3 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all font-semibold uppercase tracking-wider text-xs cursor-pointer flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
             >
               <ArrowLeft className="w-4 h-4" /> Retour
             </button>
             <button
               type="submit"
-              className="px-6 py-3 rounded-xl bg-[#34d399] text-[#0a0a0a] hover:bg-[#34d399]/90 font-bold uppercase tracking-wider text-xs cursor-pointer shadow-[0_0_20px_rgba(52,211,153,0.25)] flex items-center gap-2 active:scale-95 transition-all"
+              className="px-6 py-3 rounded-xl bg-[#34d399] text-[#0a0a0a] hover:bg-[#34d399]/90 font-bold uppercase tracking-wider text-xs cursor-pointer shadow-[0_0_20px_rgba(52,211,153,0.25)] flex items-center gap-2 active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
             >
               Soumettre ma candidature ✓
             </button>

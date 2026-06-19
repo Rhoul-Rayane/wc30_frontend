@@ -87,9 +87,9 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
               Dernière actualisation : {lastRefreshTime}
             </span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-display font-black text-white tracking-tight flex items-center gap-3">
+          <h1 className="text-3xl md:text-4xl font-display font-black text-white tracking-tight flex items-center gap-3">
             Centre de Commandement 📊
-          </h2>
+          </h1>
           <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed max-w-xl">
             Console d'analyse décisionnelle et de contrôle des indicateurs consolidés (Comité d'organisation National & FIFA).
           </p>
@@ -100,7 +100,7 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
           <button
             type="button"
             onClick={handleRefresh}
-            className={`px-4.5 py-2.5 rounded-xl font-display font-extrabold text-xs uppercase tracking-wider transition-all duration-300 flex items-center gap-2 border select-none ${
+            className={`px-4.5 py-2.5 rounded-xl font-display font-extrabold text-xs uppercase tracking-wider transition-all duration-300 flex items-center gap-2 border select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
               isRefreshing 
                 ? 'bg-zinc-900 border-zinc-800 text-zinc-500 cursor-not-allowed'
                 : 'bg-zinc-800/80 border-zinc-700/80 hover:bg-zinc-750 hover:border-zinc-650 text-white cursor-pointer active:scale-95'

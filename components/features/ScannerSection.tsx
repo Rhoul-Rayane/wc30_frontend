@@ -187,7 +187,7 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
           <button 
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
-            className="p-1 px-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white transition-all text-[11px] font-mono flex items-center gap-1.5"
+            className="p-1 px-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white transition-all text-[11px] font-mono flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] cursor-pointer"
             title="Activer/Désactiver le bip sonore de numérisation"
           >
             {soundEnabled ? (
@@ -203,9 +203,9 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
             )}
           </button>
         </div>
-        <h2 className="text-3xl md:text-4xl font-display font-extrabold text-white mb-2 tracking-tight">
+        <h1 className="text-3xl md:text-4xl font-display font-extrabold text-white mb-2 tracking-tight">
           Scanner d'Accès 🔒
-        </h2>
+        </h1>
         <p className="text-xs md:text-sm text-zinc-400 max-w-lg mx-auto leading-relaxed">
           Outil officiel de contrôle biométrique et d'accréditation des tourniquets d'entrée pour les agents de terrain.
         </p>
@@ -287,7 +287,7 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
               type="button"
               disabled={scanning}
               onClick={() => handleSimulateScan('billet')}
-              className="py-3 px-4 rounded-xl border border-[#34d399]/30 bg-[#34d399]/5 hover:bg-[#34d399]/15 text-white font-display font-medium text-xs uppercase tracking-wider transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 select-none active:scale-[0.98]"
+              className="py-3 px-4 rounded-xl border border-[#34d399]/30 bg-[#34d399]/5 hover:bg-[#34d399]/15 text-white font-display font-medium text-xs uppercase tracking-wider transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399]"
             >
               <span className="flex items-center gap-2">
                 <span className="text-sm">🎫</span>
@@ -303,7 +303,7 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
               type="button"
               disabled={scanning}
               onClick={() => handleSimulateScan('badge')}
-              className="py-3 px-4 rounded-xl border border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-white font-display font-medium text-xs uppercase tracking-wider transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 select-none active:scale-[0.98]"
+              className="py-3 px-4 rounded-xl border border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-white font-display font-medium text-xs uppercase tracking-wider transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399]"
             >
               <span className="flex items-center gap-2">
                 <span className="text-sm">🛡️</span>
@@ -319,7 +319,7 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
               type="button"
               disabled={scanning}
               onClick={() => handleSimulateScan('refus')}
-              className="py-3 px-4 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-[red]/15 text-white font-display font-medium text-xs uppercase tracking-wider transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 select-none active:scale-[0.98]"
+              className="py-3 px-4 rounded-xl border border-red-500/30 bg-red-500/5 hover:bg-[red]/15 text-white font-display font-medium text-xs uppercase tracking-wider transition-all flex items-center justify-between cursor-pointer disabled:opacity-50 select-none active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399]"
             >
               <span className="flex items-center gap-2">
                 <span className="text-sm">❌</span>
@@ -334,7 +334,7 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
         </div>
 
         {/* RESULTS PANELS: Bottom glassmorphic sheet overlay */}
-        <div className="relative mt-2" id="scan-results-panel">
+        <div className="relative mt-2" id="scan-results-panel" aria-live="polite">
           
           {/* Active outcome rendering */}
           {scanType === 'billet' && (
