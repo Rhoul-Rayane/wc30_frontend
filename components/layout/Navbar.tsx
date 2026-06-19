@@ -20,8 +20,7 @@ export default function Navbar() {
   const navLinks = [
     { label: "Matches", href: "/matches", activeCheck: () => pathname === "/matches" },
     { label: "Stades", href: "/stadiums", activeCheck: () => pathname === "/stadiums" },
-    { label: "Tarifs 💰", href: "/tickets?tab=tarifs", activeCheck: () => pathname === "/tickets" && activeTabParam === "tarifs" },
-    { label: "Billets", href: "/tickets?tab=billets", activeCheck: () => pathname === "/tickets" && activeTabParam !== "tarifs" },
+    { label: "Billetterie 🎫", href: "/tickets", activeCheck: () => pathname === "/tickets" },
     { label: "Volontaires", href: "/volunteer/register", activeCheck: () => pathname.startsWith("/volunteer") },
     { label: "Dashboard", href: "/dashboard", activeCheck: () => pathname === "/dashboard" }
   ];
@@ -115,22 +114,13 @@ export default function Navbar() {
           <span>Stades</span>
         </Link>
         <Link
-          href="/tickets?tab=tarifs"
+          href="/tickets"
           className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded transition-all ${
-            pathname === "/tickets" && activeTabParam === "tarifs" ? "text-[#34d399]" : ""
-          }`}
-        >
-          <span className="text-base">💰</span>
-          <span>Tarifs</span>
-        </Link>
-        <Link
-          href="/tickets?tab=billets"
-          className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded transition-all ${
-            pathname === "/tickets" && activeTabParam !== "tarifs" ? "text-[#34d399]" : ""
+            pathname === "/tickets" ? "text-[#34d399]" : ""
           }`}
         >
           <span className="text-base">🎫</span>
-          <span>Achat</span>
+          <span>Billetterie</span>
         </Link>
         <Link
           href="/volunteer/register"
