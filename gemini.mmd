@@ -1,0 +1,63 @@
+# 📜 Constitution du Projet : wc30_frontend
+*Ce document sert de source de vérité pour le développement du frontend headless Next.js de la Coupe du Monde 2030.*
+
+---
+
+## 🎯 1. Vision & Objectifs
+L'application `wc30_frontend` est une interface web moderne, découplée (headless), connectée en temps réel à un backend Odoo 19 Enterprise (via JSON-RPC) et à un moteur de logique externe (lab.leapter). Elle sert de vitrine publique et d'outil d'exploitation pour l'événement.
+
+### Fonctionnalités Clés :
+*   **Portail Public / Fans :** Liste des matchs en temps réel, détails des stades marocains.
+*   **Portail des Volontaires :** Pipeline d'inscription, profil personnel, planning des shifts de travail.
+*   **Dashboard Décisionnel :** Graphiques et indicateurs analytiques (provenant de `wc_dashboard`).
+*   **Scanner Mobile :** Interface de scannage par caméra des billets et accréditations.
+
+---
+
+## 💻 2. Stack Technique & Architecture
+*   **Framework :** Next.js 15 (App Router).
+*   **Langage :** TypeScript (typage strict).
+*   **Styling :** Tailwind CSS (approche utility-first, HSL colors).
+*   **Animations :** Framer Motion / Anime.js (micro-interactions fluides).
+*   **Communication Backend :** JSON-RPC (HTTP POST `/jsonrpc` sur execute_kw).
+*   **Logique Métier :** lab.leapter API endpoints (tarification dynamique, matching).
+
+---
+
+## 🎨 3. Design System & Charte Graphique
+Le design doit être extrêmement premium (effet "wow") et immersif, reflétant l'ampleur d'une Coupe du Monde de la FIFA.
+
+*   **Thème :** Sombre par défaut (Dark Mode immersif).
+*   **Palette de Couleurs :**
+    *   Fond : Noir mat et gris ardoise profond (`bg-neutral-950`, `bg-zinc-900`).
+    *   Primaire : Vert émeraude vibrant (`text-emerald-400`, `bg-emerald-500` - clin d'œil au Maroc).
+    *   Accent : Or / Doré premium (`text-amber-400`).
+*   **Typographie :** Police de caractère Google Fonts **Outfit** ou **Inter** (sans-serif moderne).
+*   **Effets :** Glassmorphism (panneaux translucides avec filtres `backdrop-blur-md` et bordures subtiles).
+
+---
+
+## 📂 4. Structure des Dossiers & Routes
+```
+wc30_frontend/
+├── app/                  # App Router de Next.js
+│   ├── layout.tsx        # Layout global (navbar, footer, police Outfit)
+│   ├── page.tsx          # Page d'accueil publique (Hero premium)
+│   ├── matches/          # Liste des matchs & Stades (Fans)
+│   ├── volunteer/        # Portail Volontaires
+│   │   ├── register/     # Inscription (Pipeline recrutement)
+│   │   └── dashboard/    # Planning & Profil (Authentifié)
+│   ├── scan/             # Interface scanner de tickets mobile
+│   └── dashboard/        # KPIs publics & graphiques
+├── components/           # Composants réutilisables (widgets, cards)
+├── lib/                  # Utilitaires (odoo.ts client, api.ts)
+└── gemini.mmd            # La présente constitution
+```
+
+---
+
+## ⚙️ 5. Principes de Développement pour les Agents
+1.  **Changements Atomiques :** Effectuer une seule modification fonctionnelle ou stylistique par message.
+2.  **Sécurité :** Ne jamais coder en dur le mot de passe administrateur d'Odoo. Utiliser les variables d'environnement `.env.local`.
+3.  **Gestion du Contexte :** Préférer les composants fonctionnels purs et archiver/résumer les conversations dès qu'elles atteignent 50% de la limite de tokens pour éviter le "context rot".
+4.  **Auto-réparation :** En cas d'erreur de compilation, exécuter `npm run build` ou `next lint` et analyser systématiquement les retours d'erreurs avant de proposer des correctifs.
