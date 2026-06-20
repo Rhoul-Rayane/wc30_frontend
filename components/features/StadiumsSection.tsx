@@ -10,9 +10,11 @@ import { MapPin, Trophy, ArrowRight } from 'lucide-react';
 
 interface StadiumsSectionProps {
   onViewMatchesInStadium?: (stadiumName: string) => void;
+  initialStadiums?: Stadium[];
 }
 
-export default function StadiumsSection({ onViewMatchesInStadium }: StadiumsSectionProps) {
+export default function StadiumsSection({ onViewMatchesInStadium, initialStadiums }: StadiumsSectionProps) {
+  const stadiumsSource = initialStadiums || OFFICIAL_STADIUMS;
   const [hoveredStadiumId, setHoveredStadiumId] = useState<string | null>(null);
 
   // Maps coordinates and information for the custom SVG interactive map based on official borders
@@ -117,7 +119,7 @@ export default function StadiumsSection({ onViewMatchesInStadium }: StadiumsSect
 
             {/* City Hotspots */}
             {mapCities.map((point) => {
-              const info = OFFICIAL_STADIUMS.find(s => s.id === point.id);
+              const info = stadiumsSource.find(s => s.id === point.id);
               const isHovered = hoveredStadiumId === point.id;
               
               return (
@@ -196,7 +198,7 @@ export default function StadiumsSection({ onViewMatchesInStadium }: StadiumsSect
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8" id="stadiums-showcase-grid">
-          {OFFICIAL_STADIUMS.map((stadium) => {
+          {stadiumsSource.map((stadium) => {
             const matchesCount = matchesCountMap[stadium.id] || "8 matchs";
             const isReady = stadium.progress === "Prêt";
             

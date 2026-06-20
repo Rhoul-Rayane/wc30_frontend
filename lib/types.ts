@@ -272,3 +272,258 @@ export const DASHBOARD_STATS: DashboardStats = {
   ticketsAvailable: 320000,
   averageMatchingScore: 72.3
 };
+
+// ============================================================
+// Interfaces alignées sur les modèles Odoo réels
+// ============================================================
+
+/** Modèle Odoo wc.match (avec extensions wc_data) */
+export interface OdooMatch {
+  id: number;
+  name: string;
+  team_a: string;
+  team_b: string;
+  team_a_id: [number, string] | false;
+  team_b_id: [number, string] | false;
+  stadium_id: [number, string];
+  date_time: string;
+  phase: 'group' | 'round16' | 'quarter' | 'semi' | 'third' | 'final';
+  group: string | false;
+  state: 'planned' | 'ongoing' | 'done' | 'cancelled';
+  score_a: number;
+  score_b: number;
+  referee: string | false;
+  attendance: number;
+  is_historical: boolean;
+}
+
+/** Modèle Odoo wc.stadium */
+export interface OdooStadium {
+  id: number;
+  name: string;
+  city: string;
+  capacity: number;
+  gross_capacity: number;
+  net_capacity: number;
+  address: string | false;
+  stadium_type: 'match' | 'training';
+  state: 'construction' | 'ready' | 'maintenance';
+  country: string;
+  gps_lat: number;
+  gps_lng: number;
+  fifa_code: string | false;
+  zone_ids: number[];
+  match_ids: number[];
+  zone_count: number;
+  match_count: number;
+  image: string | false;
+}
+
+/** Modèle Odoo wc.stadium.zone */
+export interface OdooStadiumZone {
+  id: number;
+  name: string;
+  stadium_id: [number, string];
+  zone_type: 'tribune' | 'vip' | 'press' | 'field' | 'backstage' | 'medical' | 'logistics';
+  capacity: number;
+}
+
+/** Modèle Odoo wc.volunteer */
+export interface OdooVolunteer {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | false;
+  date_of_birth: string | false;
+  gender: 'male' | 'female' | false;
+  nationality: string | false;
+  id_number: string | false;
+  skill_ids: [number, string][];
+  language_ids: [number, string][];
+  has_driving_license: boolean;
+  has_vehicle: boolean;
+  has_first_aid: boolean;
+  education_level: 'bac' | 'bac2' | 'bac3' | 'bac5' | 'phd' | false;
+  experience: string | false;
+  availability: 'full' | 'morning' | 'evening' | 'weekend';
+  preferred_stadium_id: [number, string] | false;
+  state: 'candidate' | 'preselected' | 'trained' | 'assigned' | 'active' | 'archived';
+  matching_score: number;
+  points: number;
+  application_date: string;
+}
+
+/** Modèle Odoo wc.volunteer.skill */
+export interface OdooVolunteerSkill {
+  id: number;
+  name: string;
+  color: number;
+}
+
+/** Modèle Odoo wc.volunteer.role */
+export interface OdooVolunteerRole {
+  id: number;
+  name: string;
+  functional_area: string;
+  description: string | false;
+}
+
+/** Modèle Odoo wc.accreditation */
+export interface OdooAccreditation {
+  id: number;
+  name: string;
+  holder_name: string;
+  holder_email: string | false;
+  category: 'fifa' | 'team' | 'media' | 'volunteer' | 'vip' | 'logistics' | 'medical';
+  qr_token: string;
+  state: 'draft' | 'approved' | 'printed' | 'active' | 'suspended' | 'revoked';
+  zone_ids: [number, string][];
+  date_start: string;
+  date_end: string;
+  is_expired: boolean;
+  scan_count: number;
+  last_scan_date: string | false;
+}
+
+/** Modèle Odoo wc.ticket.pricing */
+export interface OdooTicketPricing {
+  id: number;
+  name: string;
+  stadium_id: [number, string];
+  phase: 'group' | 'round16' | 'quarter' | 'semi' | 'third' | 'final';
+  ticket_category: 'cat1' | 'cat2' | 'cat3' | 'cat4';
+  base_price: number;
+  early_bird_price: number;
+  last_minute_price: number;
+  resident_discount_pct: number;
+  student_discount_pct: number;
+  final_price_resident: number;
+  final_price_student: number;
+  total_available: number;
+  total_sold: number;
+  fill_rate: number;
+}
+
+/** Modèle Odoo wc.dashboard (singleton KPIs) */
+export interface OdooDashboard {
+  id: number;
+  name: string;
+  date_refresh: string | false;
+  // Volontaires
+  vol_total: number;
+  vol_candidates: number;
+  vol_preselected: number;
+  vol_trained: number;
+  vol_assigned: number;
+  vol_active: number;
+  vol_avg_score: number;
+  // Stades
+  stadium_total: number;
+  stadium_ready: number;
+  stadium_total_capacity: number;
+  // Matchs
+  match_total: number;
+  match_planned: number;
+  match_done: number;
+  // Badges
+  badge_total: number;
+  badge_active: number;
+  badge_expired: number;
+  badge_revoked: number;
+  badge_total_scans: number;
+  // Logistique
+  incident_total: number;
+  incident_open: number;
+  incident_critical: number;
+  resource_out_of_stock: number;
+  transport_planned: number;
+  request_pending: number;
+  // Finance
+  budget_total_planned: number;
+  budget_total_spent: number;
+  budget_consumption_avg: number;
+  revenue_total_projected: number;
+  revenue_total_actual: number;
+  revenue_variance_pct: number;
+  ticket_total_available: number;
+  ticket_total_sold: number;
+  ticket_fill_rate: number;
+}
+
+/** Résultat de validation de scan (badge ou ticket) */
+export interface ScanValidationResult {
+  valid: boolean;
+  message: string;
+  holder_name?: string;
+  category?: string;
+  zones?: string[];
+  scan_count?: number;
+  ticket_data?: {
+    match: string;
+    stadium: string;
+    zone: string;
+    barcode: string;
+  };
+}
+
+// ============================================================
+// Fonctions de mapping Odoo → Frontend
+// ============================================================
+
+const PHASE_MAP: Record<string, string> = {
+  group: 'Phase de groupes',
+  round16: 'Huitièmes de finale',
+  quarter: 'Quart de finale',
+  semi: 'Demi-finale',
+  third: 'Petite Finale (3e place)',
+  final: 'Grande Finale',
+};
+
+const STATE_MAP: Record<string, string> = {
+  planned: 'Planifié',
+  ongoing: 'En cours',
+  done: 'Terminé',
+  cancelled: 'Annulé',
+};
+
+/** Convertit un match Odoo vers l'interface Match du frontend */
+export function mapOdooMatch(raw: OdooMatch): Match {
+  return {
+    id: `match-${raw.id}`,
+    homeTeam: raw.team_a,
+    homeFlag: '',  // Les drapeaux emoji ne sont pas dans Odoo — sera enrichi côté frontend
+    awayTeam: raw.team_b,
+    awayFlag: '',
+    phase: PHASE_MAP[raw.phase] || raw.phase,
+    stadium: raw.stadium_id[1],
+    city: '',  // Dérivé du stade côté frontend
+    date: raw.date_time ? new Date(raw.date_time).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '',
+    time: raw.date_time ? new Date(raw.date_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+    score: raw.state === 'done' ? `${raw.score_a} - ${raw.score_b}` : undefined,
+    isPopular: raw.phase === 'final' || raw.phase === 'semi',
+  };
+}
+
+/** Convertit un stade Odoo vers l'interface Stadium du frontend */
+export function mapOdooStadium(raw: OdooStadium): Stadium {
+  const EMOJI_MAP: Record<string, string> = {
+    'Casablanca': '🏟️',
+    'Rabat': '🏛️',
+    'Tanger': '🌊',
+    'Fès': '🏺',
+    'Marrakech': '🌴',
+    'Agadir': '☀️',
+  };
+
+  return {
+    id: `stadium-${raw.id}`,
+    name: raw.name,
+    city: raw.city,
+    capacity: raw.capacity,
+    highlight: '',
+    progress: raw.state === 'ready' ? 'Prêt' : 'En construction',
+    image: EMOJI_MAP[raw.city] || '🏟️',
+    description: raw.address || '',
+    features: [],
+  };
+}

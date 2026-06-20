@@ -23,7 +23,26 @@ import {
 } from 'lucide-react';
 
 interface VolunteerSectionProps {
-  onAddVolunteer: (score: number) => void;
+  onAddVolunteer: (data: {
+    name: string;
+    email: string;
+    phone?: string;
+    date_of_birth?: string;
+    gender?: 'Homme' | 'Femme';
+    nationality?: string;
+    id_number?: string;
+    address?: string;
+    skills: string[];
+    languages: string[];
+    has_driving_license?: boolean;
+    has_vehicle?: boolean;
+    has_first_aid?: boolean;
+    education_level?: string;
+    experience?: string;
+    availability?: string;
+    preferred_stadium_id?: string;
+    matching_score?: number;
+  }) => void;
   currentCount: number;
   onNavigate?: (tab: string) => void;
 }
@@ -231,36 +250,78 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
       return;
     }
 
-    // Dynamic AI and human matching score calculation logic
-    let score = 52; // Base score
-    
-    // Skill contribution (+4 per skill, capped at +16)
-    score += Math.min(16, selectedSkills.length * 4);
-    
-    // Languages contribution (+5 per language, capped at +20)
-    score += Math.min(20, selectedLanguages.length * 5);
+    // Alignement de l'algorithme de matching multicritère avec Odoo 19
+    let score = 0;
 
-    // Certifications / Extras and profiles evaluation bonus
-    if (hasFirstAid || selectedSkills.includes("Premiers secours")) score += 6;
-    if (hasLicense) score += 4;
-    if (hasVehicle) score += 3;
+    // Langues (max 30 pts) : 6 pts par langue, plafonné à 5 langues
+    score += Math.min(selectedLanguages.length * 6, 30);
 
-    // High matching priorities
-    if (availability === "Temps plein") score += 10;
-    
-    // Languages affinity bonus for 2030 (combining Arabic, Spanish, French, English, Portuguese)
-    const matchesCoHosts = selectedLanguages.some(l => ["Espagnol", "Portugais", "Arabe", "Français"].includes(l));
-    if (matchesCoHosts) score += 5;
+    // Compétences (max 30 pts) : 5 pts par compétence, plafonné à 6 compétences
+    score += Math.min(selectedSkills.length * 5, 30);
 
-    // Motivation and experience check
-    if (pastExperience.trim().length > 40) score += 4;
+    // Permis de conduire (10 pts)
+    if (hasLicense) {
+      score += 10;
+    }
 
-    // Capping at a high premium profile (max 99)
-    const finalCalculated = Math.min(99, Math.max(68, score));
+    // Véhicule personnel (5 pts)
+    if (hasVehicle) {
+      score += 5;
+    }
+
+    // Premiers secours (10 pts)
+    if (hasFirstAid || selectedSkills.includes("Premiers secours")) {
+      score += 10;
+    }
+
+    // Disponibilité (max 10 pts)
+    if (availability === "Temps plein") {
+      score += 10;
+    } else if (availability === "Matin") {
+      score += 5;
+    } else if (availability === "Soir") {
+      score += 5;
+    } else if (availability === "Week-end") {
+      score += 3;
+    }
+
+    // Niveau d'études (max 5 pts)
+    if (educationLevel.includes("Doctorat")) {
+      score += 5;
+    } else if (educationLevel.includes("Master") || educationLevel.includes("Bac+5")) {
+      score += 4;
+    } else if (educationLevel.includes("Licence") || educationLevel.includes("Bac+3")) {
+      score += 3;
+    } else if (educationLevel.includes("Bac+2")) {
+      score += 2;
+    } else {
+      score += 1; // Baccalauréat / par défaut
+    }
+
+    const finalCalculated = Math.min(100, Math.max(0, score));
     setFinalScore(finalCalculated);
 
     // Report back to App.tsx score summary tracker
-    onAddVolunteer(finalCalculated);
+    onAddVolunteer({
+      name: fullName,
+      email: email,
+      phone: phone || undefined,
+      date_of_birth: birthDate || undefined,
+      gender: gender,
+      nationality: nationality || undefined,
+      id_number: docNumber || undefined,
+      address: address || undefined,
+      skills: selectedSkills,
+      languages: selectedLanguages,
+      has_driving_license: hasLicense,
+      has_vehicle: hasVehicle,
+      has_first_aid: hasFirstAid,
+      education_level: educationLevel,
+      experience: pastExperience || undefined,
+      availability: availability,
+      preferred_stadium_id: preferredStadium,
+      matching_score: finalCalculated
+    });
 
     // Roll to Step 4: Success confirmation Screen
     setCurrentStep(4);

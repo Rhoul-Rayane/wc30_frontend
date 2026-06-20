@@ -21,12 +21,23 @@ import {
   Info
 } from 'lucide-react';
 
+import { DashboardStats } from '@/lib/types';
+
 interface DashboardSectionProps {
   volunteerCount: number;
   volunteerAverageScore: number;
+  stats?: DashboardStats | null;
+  onRefreshStats?: () => Promise<void>;
+  isLoadingStats?: boolean;
 }
 
-export default function DashboardSection({ volunteerCount, volunteerAverageScore }: DashboardSectionProps) {
+export default function DashboardSection({ 
+  volunteerCount, 
+  volunteerAverageScore,
+  stats,
+  onRefreshStats,
+  isLoadingStats = false
+}: DashboardSectionProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [refreshMessage, setRefreshMessage] = useState<string | null>(null);
   
@@ -35,25 +46,36 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
   const [localTickets, setLocalTickets] = useState(78000);
   const [lastRefreshTime, setLastRefreshTime] = useState("il y a 5 minutes");
 
+  // Sync state with dynamic stats if provided
+  useEffect(() => {
+    if (stats) {
+      setLocalTickets(stats.ticketsSold);
+    }
+  }, [stats]);
+
+  const activeRefreshing = isRefreshing || isLoadingStats;
+
   // Dynamic matching score derived from volunteer's average score if provided, else falls back to 72.3
-  const currentMatchingScore = volunteerAverageScore && volunteerAverageScore !== 74 
-    ? parseFloat(volunteerAverageScore.toFixed(1)) 
-    : 72.3;
+  const currentMatchingScore = stats?.averageMatchingScore
+    ? parseFloat(stats.averageMatchingScore.toFixed(1))
+    : volunteerAverageScore && volunteerAverageScore !== 74 
+      ? parseFloat(volunteerAverageScore.toFixed(1)) 
+      : 72.3;
 
   // Volunteer aggregate: base candidate pool of 3200 + any registered ones dynamically.
-  const baseVolunteersCount = 3200;
-  const registeredAdditions = Math.max(0, volunteerCount - 44);
-  const totalVolunteersDisplay = baseVolunteersCount + registeredAdditions;
+  const baseVolunteersCount = stats?.voluntariesCount ?? (3200 + Math.max(0, volunteerCount - 44));
+  const totalVolunteersDisplay = baseVolunteersCount;
   const volunteerProgressPercent = parseFloat(((totalVolunteersDisplay / 5000) * 100).toFixed(1));
 
-  const handleRefresh = () => {
-    if (isRefreshing) return;
+  const handleRefresh = async () => {
+    if (activeRefreshing) return;
     setIsRefreshing(true);
     setRefreshMessage(null);
 
-    // Simulate real-time API sync and data consolidation from Moroccan WC committee DB
-    setTimeout(() => {
-      setIsRefreshing(false);
+    try {
+      if (onRefreshStats) {
+        await onRefreshStats();
+      }
       setLastRefreshTime("à l'instant");
       
       // Randomly tweak incident or ticket variables for high fidelity
@@ -62,11 +84,17 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
         open: Math.max(8, prev.open + (Math.random() > 0.5 ? 1 : -1)),
         critical: Math.max(1, prev.critical + (Math.random() > 0.7 ? 1 : -1))
       }));
-      setLocalTickets(prev => prev + Math.floor(Math.random() * 12));
+      if (!stats) {
+        setLocalTickets(prev => prev + Math.floor(Math.random() * 12));
+      }
       
       setRefreshMessage("Indicateurs synchronisés à la base FIFA Core Database !");
       setTimeout(() => setRefreshMessage(null), 3000);
-    }, 1200);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -101,12 +129,12 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
             type="button"
             onClick={handleRefresh}
             className={`px-4.5 py-2.5 rounded-xl font-display font-extrabold text-xs uppercase tracking-wider transition-all duration-300 flex items-center gap-2 border select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 ${
-              isRefreshing 
+              activeRefreshing 
                 ? 'bg-zinc-900 border-zinc-800 text-zinc-500 cursor-not-allowed'
                 : 'bg-zinc-800/80 border-zinc-700/80 hover:bg-zinc-750 hover:border-zinc-650 text-white cursor-pointer active:scale-95'
             }`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-zinc-500' : 'text-[#34d399]'}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${activeRefreshing ? 'animate-spin text-zinc-500' : 'text-[#34d399]'}`} />
             <span>Actualiser les données</span>
           </button>
           
@@ -155,20 +183,22 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
             <div>
               <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest font-mono font-bold">Stadiums</span>
               <p className="text-2xl font-display font-black text-white mt-1">
-                4 / 6 <span className="text-xs text-[#34d399] font-normal">Prêts</span>
+                {stats?.stadiumsReady ?? 4} / {stats?.stadiumsCount ?? 6} <span className="text-xs text-[#34d399] font-normal">Prêts</span>
               </p>
             </div>
             <span className="px-2 py-1 rounded bg-[#fbbf24]/10 text-[#fbbf24] text-[9px] font-mono font-bold uppercase tracking-tight animate-pulse shrink-0 border border-[#fbbf24]/20">
-              2 en construction
+              {((stats?.stadiumsCount ?? 6) - (stats?.stadiumsReady ?? 4)) > 0 
+                ? `${(stats?.stadiumsCount ?? 6) - (stats?.stadiumsReady ?? 4)} en construction` 
+                : "Tous prêts"}
             </span>
           </div>
 
           <div className="flex gap-1.5 pt-1.5">
-            {[1, 2, 3, 4].map(st => (
-              <span key={st} className="w-full h-1.5 rounded-full bg-[#34d399]" title="Conforme FIFA" />
+            {Array.from({ length: stats?.stadiumsReady ?? 4 }).map((_, i) => (
+              <span key={`ready-${i}`} className="w-full h-1.5 rounded-full bg-[#34d399]" title="Conforme FIFA" />
             ))}
-            {[1, 2].map(st => (
-              <span key={st} className="w-full h-1.5 rounded-full bg-[#fbbf24]" title="Installation Active" />
+            {Array.from({ length: (stats?.stadiumsCount ?? 6) - (stats?.stadiumsReady ?? 4) }).map((_, i) => (
+              <span key={`not-ready-${i}`} className="w-full h-1.5 rounded-full bg-[#fbbf24]" title="Installation Active" />
             ))}
           </div>
         </div>
@@ -179,7 +209,7 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
             <div>
               <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest font-mono">⚽ Matchs</span>
               <p className="text-2xl font-display font-black text-white mt-1">
-                12 / 48 <span className="text-xs text-zinc-500 font-normal">Terminés</span>
+                12 / {stats?.matchesScheduled ?? 48} <span className="text-xs text-zinc-500 font-normal">Terminés</span>
               </p>
             </div>
             <span className="p-1.5 rounded-lg bg-zinc-900 text-zinc-400">
@@ -207,11 +237,11 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
             <div>
               <span className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest font-mono">🎫 Billets émis</span>
               <p className="text-2xl font-display font-black text-[#fbbf24] mt-1">
-                {localTickets.toLocaleString('fr-FR')} <span className="text-xs text-zinc-500 font-normal">vendus</span>
+                {(stats?.ticketsSold ?? localTickets).toLocaleString('fr-FR')} <span className="text-xs text-zinc-500 font-normal">vendus</span>
               </p>
             </div>
             <span className="px-2 py-0.5 rounded bg-[#fbbf24]/10 border border-[#fbbf24]/20 text-[9px] font-mono text-[#fbbf24]">
-              24.4%
+              {(((stats?.ticketsSold ?? localTickets) / (stats?.ticketsAvailable ?? 320000)) * 100).toFixed(1)}%
             </span>
           </div>
 
@@ -219,12 +249,12 @@ export default function DashboardSection({ volunteerCount, volunteerAverageScore
             <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-[#fbbf24]" 
-                style={{ width: `24.4%` }}
+                style={{ width: `${(((stats?.ticketsSold ?? localTickets) / (stats?.ticketsAvailable ?? 320000)) * 100).toFixed(1)}%` }}
               />
             </div>
             <div className="flex justify-between text-[10px] font-mono text-zinc-500">
               <span>Capacité d'accueil globale</span>
-              <span className="text-white font-semibold">320 000 places</span>
+              <span className="text-white font-semibold">{(stats?.ticketsAvailable ?? 320000).toLocaleString('fr-FR')} places</span>
             </div>
           </div>
         </div>

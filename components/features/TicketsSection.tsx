@@ -11,6 +11,8 @@ interface TicketsSectionProps {
   initialSelectedMatch?: Match | null;
   onTicketGenerated: (ticketToken: string) => void;
   onNavigateToScanner: () => void;
+  matches?: Match[];
+  ticketCategories?: TicketCategory[];
 }
 
 export interface GeneratedTicket {
@@ -33,10 +35,12 @@ export interface GeneratedTicket {
 export default function TicketsSection({ 
   initialSelectedMatch, 
   onTicketGenerated,
-  onNavigateToScanner 
+  onNavigateToScanner,
+  matches = DEMO_MATCHES,
+  ticketCategories = TICKET_CATEGORIES
 }: TicketsSectionProps) {
-  const [selectedMatch, setSelectedMatch] = useState<Match>(DEMO_MATCHES[0]);
-  const [selectedCategory, setSelectedCategory] = useState<TicketCategory>(TICKET_CATEGORIES[2]);
+  const [selectedMatch, setSelectedMatch] = useState<Match>(matches[0] || DEMO_MATCHES[0]);
+  const [selectedCategory, setSelectedCategory] = useState<TicketCategory>(ticketCategories[2] || TICKET_CATEGORIES[2]);
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedDiscount, setSelectedDiscount] = useState<string>("discount-none");
   const [holderName, setHolderName] = useState<string>("");
@@ -46,20 +50,146 @@ export default function TicketsSection({
 
   const [activeTicket, setActiveTicket] = useState<GeneratedTicket | null>(null);
 
-  // Sync if came from reference
+  // États pour la tarification dynamique lab.leapter
+  const [bookingWindow, setBookingWindow] = useState<string>("standard");
+  const [stadiumFillRate, setStadiumFillRate] = useState<number>(65);
+  const [unitPrice, setUnitPrice] = useState<number>(ticketCategories[2]?.priceMAD ?? 1200);
+  const [calculationStatus, setCalculationStatus] = useState<string>("success");
+  const [calculationSource, setCalculationSource] = useState<string>("local_fallback");
+  const [isLoadingPrice, setIsLoadingPrice] = useState<boolean>(false);
+
+  // Sync if came from reference or matches loaded
   useEffect(() => {
     if (initialSelectedMatch) {
       setSelectedMatch(initialSelectedMatch);
+    } else if (matches && matches.length > 0) {
+      setSelectedMatch(prev => prev && matches.some(m => m.id === prev.id) ? prev : matches[0]);
     }
-  }, [initialSelectedMatch]);
+  }, [initialSelectedMatch, matches]);
+
+  useEffect(() => {
+    if (ticketCategories && ticketCategories.length > 0) {
+      setSelectedCategory(prev => prev && ticketCategories.some(c => c.id === prev.id) ? prev : ticketCategories[2] || ticketCategories[0]);
+    }
+  }, [ticketCategories]);
 
   // Compute prices
-  const baseUnitPrice = selectedCategory.priceMAD;
+  const baseUnitPrice = selectedCategory?.priceMAD ?? 0;
   const initialTotal = baseUnitPrice * quantity;
+  const finalTotalPrice = unitPrice * quantity;
+  const priceDifference = finalTotalPrice - initialTotal;
 
-  const currentDiscount = DISCOUNT_OPTIONS.find(d => d.id === selectedDiscount) || DISCOUNT_OPTIONS[0];
-  const deductionAmount = (initialTotal * currentDiscount.reductionPercent) / 100;
-  const finalTotalPrice = initialTotal - deductionAmount;
+  // Fonctions de mapping pour lab.leapter
+  const getStadiumDistance = (stadiumName: string): number => {
+    if (stadiumName.includes("Hassan II") || stadiumName.includes("Casablanca")) return 18;
+    if (stadiumName.includes("Rabat")) return 8;
+    if (stadiumName.includes("Tanger")) return 12;
+    if (stadiumName.includes("Marrakech")) return 10;
+    if (stadiumName.includes("Fès")) return 6;
+    if (stadiumName.includes("Agadir")) return 14;
+    return 10;
+  };
+
+  const getPhaseCategory = (phase: string): string => {
+    const p = phase.toLowerCase();
+    if (p.includes("ouverture") || p.includes("groupe")) return "groupes";
+    if (p.includes("huitième") || p.includes("8")) return "8emes";
+    if (p.includes("quart")) return "quarts";
+    if (p.includes("demi")) return "demis";
+    if (p.includes("finale")) return "finale";
+    return "groupes";
+  };
+
+  const getBuyerProfile = (discountId: string): string => {
+    if (discountId === 'discount-resident') return 'resident';
+    if (discountId === 'discount-student') return 'etudiant';
+    if (discountId === 'discount-fifa') return 'delegation_fifa';
+    return 'plein_tarif';
+  };
+
+  // Calcul local identique de secours (offline / sans clé API)
+  const localCalculate = (inputs: { base_price: number; phase_category: string; stadium_distance_km: number; buyer_profile: string; booking_window: string; stadium_fill_rate: number }) => {
+    const { base_price, phase_category, stadium_distance_km, buyer_profile, booking_window, stadium_fill_rate } = inputs;
+    if (buyer_profile === 'delegation_fifa') return { final_price: 0, calculation_status: 'free_fifa_delegation' };
+    
+    let phaseMultiplier = 1.0;
+    if (phase_category === '8emes') phaseMultiplier = 1.2;
+    else if (phase_category === 'quarts') phaseMultiplier = 1.5;
+    else if (phase_category === 'demis') phaseMultiplier = 1.9;
+    else if (phase_category === 'finale') phaseMultiplier = 2.5;
+
+    const p1 = base_price * phaseMultiplier;
+    const p2 = stadium_distance_km > 15 ? p1 * 0.90 : p1;
+    
+    let profileFactor = 1.0;
+    if (buyer_profile === 'resident') profileFactor = 0.80;
+    else if (buyer_profile === 'etudiant' && base_price <= 1200) profileFactor = 0.60;
+    const p3 = p2 * profileFactor;
+
+    let temporalFactor = 1.0;
+    if (booking_window === 'early_bird') temporalFactor = 0.85;
+    else if (booking_window === 'last_minute' && stadium_fill_rate > 85) temporalFactor = 1.30;
+    
+    return {
+      final_price: Math.round(p3 * temporalFactor),
+      calculation_status: 'success'
+    };
+  };
+
+  // Appel asynchrone de l'API BFF Next.js
+  useEffect(() => {
+    const fetchDynamicPrice = async () => {
+      if (!selectedCategory || !selectedMatch) return;
+      setIsLoadingPrice(true);
+      
+      const payload = {
+        base_price: selectedCategory.priceMAD,
+        phase_category: getPhaseCategory(selectedMatch.phase),
+        stadium_distance_km: getStadiumDistance(selectedMatch.stadium),
+        buyer_profile: getBuyerProfile(selectedDiscount),
+        booking_window: bookingWindow,
+        stadium_fill_rate: stadiumFillRate
+      };
+
+      try {
+        const res = await fetch('/api/tickets/calculate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setUnitPrice(data.final_price ?? selectedCategory.priceMAD);
+          setCalculationStatus(data.calculation_status ?? 'success');
+          setCalculationSource(data.source ?? 'local_fallback');
+        } else {
+          console.warn("[TicketsSection] Réponse API en échec. Calcul local appliqué.");
+          const localFallback = localCalculate(payload);
+          setUnitPrice(localFallback.final_price);
+          setCalculationStatus(localFallback.calculation_status);
+          setCalculationSource('local_fallback');
+        }
+      } catch (err) {
+        console.error("[TicketsSection] Erreur de récupération du prix :", err);
+        const localFallback = localCalculate(payload);
+        setUnitPrice(localFallback.final_price);
+        setCalculationStatus(localFallback.calculation_status);
+        setCalculationSource('local_fallback');
+      } finally {
+        setIsLoadingPrice(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      fetchDynamicPrice();
+    }, 200); // 200ms debounce
+
+    return () => clearTimeout(timer);
+  }, [selectedCategory, selectedMatch, selectedDiscount, bookingWindow, stadiumFillRate]);
+
 
   const handleBookingSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +209,7 @@ export default function TicketsSection({
     }
 
     // Generate simulated seats
-    const seatPrefixIndex = TICKET_CATEGORIES.indexOf(selectedCategory);
+    const seatPrefixIndex = ticketCategories.indexOf(selectedCategory);
     const alphabet = ["A", "B", "C", "D", "E", "F"];
     const seatsList = Array.from({ length: quantity }).map((_, i) => {
       const row = Math.floor(Math.random() * 20) + 1;
@@ -94,6 +224,14 @@ export default function TicketsSection({
 
     const matchSummary = `${selectedMatch.homeFlag} ${selectedMatch.homeTeam} VS ${selectedMatch.awayTeam} ${selectedMatch.awayFlag}`;
 
+    const discountTypeName = selectedDiscount === 'discount-resident'
+      ? 'Résident Marocain (-20%)'
+      : selectedDiscount === 'discount-student'
+        ? 'Étudiant (-40%)'
+        : selectedDiscount === 'discount-fifa'
+          ? 'Délégation Officielle FIFA'
+          : 'Plein Tarif';
+
     const newTicket: GeneratedTicket = {
       id: ticketId,
       holderName: holderName.trim(),
@@ -104,7 +242,7 @@ export default function TicketsSection({
       dateTime: `${selectedMatch.date} à ${selectedMatch.time}`,
       categoryName: selectedCategory.name,
       quantity,
-      discountType: currentDiscount.name,
+      discountType: discountTypeName,
       basePrice: baseUnitPrice,
       finalPrice: finalTotalPrice,
       seatNumbers: seatsList,
@@ -173,12 +311,12 @@ export default function TicketsSection({
                 id="ticket-match-select"
                 value={selectedMatch.id}
                 onChange={(e) => {
-                  const m = DEMO_MATCHES.find(dm => dm.id === e.target.value);
+                  const m = matches.find(dm => dm.id === e.target.value);
                   if (m) setSelectedMatch(m);
                 }}
                 className="w-full px-3 py-3 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm cursor-pointer"
               >
-                {DEMO_MATCHES.map((match) => (
+                {matches.map((match) => (
                   <option key={match.id} value={match.id} disabled={match.homeTeam === 'TBD'} className="bg-[#121214]">
                     {match.homeFlag} {match.homeTeam} VS {match.awayTeam} {match.awayFlag} — {match.city} ({match.date})
                   </option>
@@ -195,8 +333,8 @@ export default function TicketsSection({
                 2. Catégorie de Tarif
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" id="categories-grid">
-                {TICKET_CATEGORIES.map((category) => {
-                  const isSelected = selectedCategory.id === category.id;
+                {ticketCategories.map((category) => {
+                  const isSelected = selectedCategory?.id === category.id;
                   return (
                     <div
                       id={`ticket-cat-${category.id}`}
@@ -280,13 +418,64 @@ export default function TicketsSection({
                       {opt.name}
                     </option>
                   ))}
+                  <option value="discount-fifa" className="bg-[#121214]">
+                    Délégation Officielle FIFA (Gratuit 👑)
+                  </option>
                 </select>
-                <p className="text-[10px] text-zinc-500 mt-1">{currentDiscount.description}</p>
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  {selectedDiscount === 'discount-resident'
+                    ? 'Sur présentation de la CNIE valide lors de l\'accès au stade'
+                    : selectedDiscount === 'discount-student'
+                      ? 'Sur présentation d\'une carte d\'étudiant marocaine ou internationale'
+                      : selectedDiscount === 'discount-fifa'
+                        ? 'Accès gratuit réservé aux officiels et délégations FIFA'
+                        : 'Tarif standard grand public'}
+                </p>
+              </div>
+            </div>
+
+            {/* Étape 3.5 : Paramètres de tarification dynamique lab.leapter */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-zinc-800/60">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2 font-display">
+                  🕰️ Période de Réservation
+                </label>
+                <select
+                  id="ticket-booking-window-select"
+                  value={bookingWindow}
+                  onChange={(e) => setBookingWindow(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl bg-black/45 border border-zinc-700/60 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm cursor-pointer"
+                >
+                  <option value="early_bird" className="bg-[#121214]">Early Bird (-15%)</option>
+                  <option value="standard" className="bg-[#121214]">Période Standard (Normal)</option>
+                  <option value="last_minute" className="bg-[#121214]">Dernière Minute (+30% si remplissage &gt;85%)</option>
+                </select>
+                <p className="text-[10px] text-zinc-500 mt-1">Simule le délai de réservation.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2 font-display flex justify-between">
+                  <span>📈 Remplissage Stade</span>
+                  <span className="text-[#34d399] font-mono">{stadiumFillRate}%</span>
+                </label>
+                <div className="flex items-center h-10">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={stadiumFillRate}
+                    onChange={(e) => setStadiumFillRate(Number(e.target.value))}
+                    className="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-[#34d399]"
+                  />
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1">
+                  Déclenche des majorations en cas de forte affluence.
+                </p>
               </div>
             </div>
 
             {/* Holder information */}
-            <div className="pt-2 border-t border-zinc-800/80">
+            <div className="pt-4 border-t border-zinc-800/80">
               <label className="block text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2 font-display">
                 5. Informations Détenteur Principal
               </label>
@@ -313,18 +502,48 @@ export default function TicketsSection({
             {/* Price statement & Agreement */}
             <div className="bg-[#121214]/60 border border-zinc-800/80 rounded-xl p-4 flex flex-col gap-2 font-mono">
               <div className="flex justify-between text-xs text-zinc-500">
-                <span>Prix unitaire ({quantity}x) :</span>
-                <span>{baseUnitPrice} MAD</span>
+                <span>Tarif de base ({quantity}x) :</span>
+                <span>{initialTotal.toLocaleString()} MAD</span>
               </div>
-              {deductionAmount > 0 && (
-                <div className="flex justify-between text-xs text-[#f87171]">
-                  <span>Remise ({currentDiscount.reductionPercent}%) :</span>
-                  <span>-{deductionAmount.toLocaleString()} MAD</span>
+              
+              <div className="flex justify-between text-xs text-zinc-500">
+                <span>Prix unitaire (Leapter) :</span>
+                {isLoadingPrice ? (
+                  <span className="animate-pulse text-[#34d399]">Calcul en cours...</span>
+                ) : (
+                  <span className="text-white font-semibold">{unitPrice} MAD</span>
+                )}
+              </div>
+
+              {priceDifference < 0 && (
+                <div className="flex justify-between text-xs text-[#34d399]">
+                  <span>Remises cumulées :</span>
+                  <span>-{Math.abs(priceDifference).toLocaleString()} MAD</span>
                 </div>
               )}
+
+              {priceDifference > 0 && (
+                <div className="flex justify-between text-xs text-[#fbbf24]">
+                  <span>Majoration (Forte affluence) :</span>
+                  <span>+{priceDifference.toLocaleString()} MAD</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-xs font-bold text-white pt-2 border-t border-zinc-800/80">
                 <span className="font-display">TOTAL À PAYER :</span>
-                <span className="text-base text-[#fbbf24]">{finalTotalPrice.toLocaleString()} MAD</span>
+                {isLoadingPrice ? (
+                  <span className="animate-pulse text-[#fbbf24]">Calcul...</span>
+                ) : (
+                  <span className="text-base text-[#fbbf24]">{finalTotalPrice.toLocaleString()} MAD</span>
+                )}
+              </div>
+
+              <div className="flex justify-between text-[9px] text-zinc-500 pt-2 border-t border-zinc-800/30">
+                <span className="flex items-center gap-1">
+                  <span className={`w-1.5 h-1.5 rounded-full ${calculationSource === 'leapter_api' ? 'bg-[#34d399] shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-zinc-500'}`} />
+                  Moteur : {calculationSource === 'leapter_api' ? 'lab.leapter (API)' : 'Calculateur local (Secours)'}
+                </span>
+                <span>Statut : {calculationStatus}</span>
               </div>
 
               <div className="flex items-start gap-2.5 mt-3 pt-3 border-t border-zinc-800/40">

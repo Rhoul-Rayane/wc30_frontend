@@ -9,7 +9,8 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import TicketsSection from "@/components/features/TicketsSection";
 import TarifsSection from "@/components/features/TarifsSection";
-import { DEMO_MATCHES, Match } from "@/lib/types";
+import { useMatches } from "@/lib/hooks/useMatches";
+import { Match } from "@/lib/types";
 
 function TicketsContent() {
   const router = useRouter();
@@ -17,16 +18,17 @@ function TicketsContent() {
   const activeTab = searchParams.get("tab") || "billets";
   const matchId = searchParams.get("matchId");
 
+  const { matches } = useMatches();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
 
   useEffect(() => {
-    if (matchId) {
-      const match = DEMO_MATCHES.find((m) => m.id === matchId);
+    if (matchId && matches.length > 0) {
+      const match = matches.find((m) => m.id === matchId);
       if (match) {
         setSelectedMatch(match);
       }
     }
-  }, [matchId]);
+  }, [matchId, matches]);
 
   const handleTicketGenerated = (token: string) => {
     localStorage.setItem("lastGeneratedTicketToken", token);
@@ -73,6 +75,7 @@ function TicketsContent() {
           initialSelectedMatch={selectedMatch}
           onTicketGenerated={handleTicketGenerated}
           onNavigateToScanner={handleNavigateToScanner}
+          matches={matches}
         />
       ) : (
         <TarifsSection onNavigateToBooking={handleNavigateToBooking} />

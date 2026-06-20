@@ -12,6 +12,7 @@ interface MatchesSectionProps {
   onBookMatch: (match: Match) => void;
   initialStadiumFilter?: string;
   onResetStadiumFilter?: () => void;
+  initialMatches?: Match[];
 }
 
 // Extended interface mapping status and group
@@ -254,8 +255,57 @@ const FIXTURES_DATA: CompMatch[] = [
 export default function MatchesSection({ 
   onBookMatch, 
   initialStadiumFilter = 'Tous',
-  onResetStadiumFilter 
+  onResetStadiumFilter,
+  initialMatches
 }: MatchesSectionProps) {
+  // Helpers to enrich Odoo matches with missing fields
+  const enrichMatches = (items: Match[]): CompMatch[] => {
+    return items.map(item => {
+      const comp = item as any;
+      if (comp.phaseCategory && comp.status) {
+        return comp as CompMatch;
+      }
+      let day = '15';
+      let month = 'Juin';
+      if (item.date) {
+        const parts = item.date.split(' ');
+        if (parts.length >= 2) {
+          day = parts[0];
+          month = parts[1];
+        }
+      }
+      let phaseCategory: 'Groupes' | '8èmes' | 'Quarts' | 'Demis' | 'Finale' = 'Groupes';
+      const phaseLower = item.phase.toLowerCase();
+      if (phaseLower.includes('huit') || phaseLower.includes('8')) {
+        phaseCategory = '8èmes';
+      } else if (phaseLower.includes('quart')) {
+        phaseCategory = 'Quarts';
+      } else if (phaseLower.includes('demi')) {
+        phaseCategory = 'Demis';
+      } else if (phaseLower.includes('finale') || phaseLower.includes('3e')) {
+        phaseCategory = 'Finale';
+      }
+      const FLAGS: Record<string, string> = {
+        'Maroc': '🇲🇦', 'Portugal': '🇵🇹', 'Brésil': '🇧🇷', 'Allemagne': '🇩🇪',
+        'France': '🇫🇷', 'Argentine': '🇦🇷', 'Uruguay': '🇺🇾', 'Angleterre': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+        'Sénégal': '🇸🇳', 'Belgique': '🇧🇪', 'Croatie': '🇭🇷', 'Canada': '🇨🇦',
+        'Espagne': '🇪🇸', 'Cameroun': '🇨🇲', 'Japon': '🇯🇵', 'Italie': '🇮🇹'
+      };
+      return {
+        ...item,
+        status: item.score ? 'Terminé' : 'Planifié',
+        group: comp.group || 'A',
+        day,
+        month,
+        phaseCategory,
+        homeFlag: item.homeFlag || FLAGS[item.homeTeam] || '🏳️',
+        awayFlag: item.awayFlag || FLAGS[item.awayTeam] || '🏳️',
+      } as CompMatch;
+    });
+  };
+
+  const matchesSource = initialMatches ? enrichMatches(initialMatches) : FIXTURES_DATA;
+
   // Filters state
   const [phaseFilter, setPhaseFilter] = useState<'Tous' | 'Groupes' | '8èmes' | 'Quarts' | 'Demis' | 'Finale'>('Tous');
   const [stadiumFilter, setStadiumFilter] = useState<string>(initialStadiumFilter);
@@ -294,7 +344,7 @@ export default function MatchesSection({
   };
 
   // Filter evaluation logic
-  const filteredMatches = FIXTURES_DATA.filter((match) => {
+  const filteredMatches = matchesSource.filter((match) => {
     // 1. Phase Filter
     const matchPhase = phaseFilter === 'Tous' || match.phaseCategory === phaseFilter;
 

@@ -20,8 +20,24 @@ export default function VolunteerRegisterPage() {
     }
   }, []);
 
-  const handleAddVolunteer = (score: number) => {
+  const handleAddVolunteer = async (data: any) => {
+    // Persist to Odoo or local mock fallback
+    try {
+      const response = await fetch("/api/volunteers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      console.log("[volunteer] Résultat enregistrement Odoo/Mock:", result);
+    } catch (error) {
+      console.error("[volunteer] Échec envoi API:", error);
+    }
+
     // Sync with local storage
+    const score = data.matching_score || 75;
     const currentCount = parseInt(localStorage.getItem("volunteerCount") || "3200", 10);
     const currentAvg = parseFloat(localStorage.getItem("volunteerAverageScore") || "72.3");
     

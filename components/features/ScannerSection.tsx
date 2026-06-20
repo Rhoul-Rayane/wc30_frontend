@@ -43,6 +43,10 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
   const [scanType, setScanType] = useState<'billet' | 'badge' | 'refus' | null>(null);
   const [shakePanel, setShakePanel] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Nouveaux états pour la caméra réelle html5-qrcode
+  const [cameraActive, setCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState("");
   
   // Scans history state initialized with realistic starter logs
   const [scanHistory, setScanHistory] = useState<HistoryScanItem[]>([
@@ -52,6 +56,68 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
     { id: "BADGE-SEC-402", time: "11:30:12", type: "Badge", name: "Rachid Amrani", result: "SUCCESS", details: "Sécurité Terrain" },
   ]);
 
+  const [scannedTicket, setScannedTicket] = useState<any>(null);
+  const [scannedBadge, setScannedBadge] = useState<any>(null);
+
+  // Effet pour monter le scanner de caméra réelle (html5-qrcode)
+  useEffect(() => {
+    let html5QrCode: any = null;
+
+    if (cameraActive) {
+      setCameraError('');
+      // Importation dynamique pour éviter les plantages Next.js SSR
+      import('html5-qrcode').then((module) => {
+        try {
+          html5QrCode = new module.Html5Qrcode("reader");
+          html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: (width: number, height: number) => {
+                const size = Math.min(width, height) * 0.7;
+                return { width: size, height: size };
+              }
+            },
+            (decodedText: string) => {
+              // Appeler la fonction de validation sur le code décodé
+              handleSimulateScan(decodedText, true);
+              setCameraActive(false);
+            },
+            () => {
+              // Callback silencieux pour les erreurs de frame
+            }
+          ).catch((err: any) => {
+            console.error("[Scanner] Échec du démarrage de la caméra :", err);
+            setCameraError("Erreur d'accès à la caméra. Veuillez autoriser l'accès.");
+            setCameraActive(false);
+          });
+        } catch (e: any) {
+          console.error("[Scanner] Erreur d'initialisation :", e);
+          setCameraError("Impossible d'initialiser le scanner vidéo.");
+          setCameraActive(false);
+        }
+      }).catch(err => {
+        console.error("[Scanner] Échec chargement module :", err);
+        setCameraError("Bibliothèque de scan indisponible.");
+        setCameraActive(false);
+      });
+    }
+
+    return () => {
+      if (html5QrCode) {
+        try {
+          if (html5QrCode.isScanning) {
+            html5QrCode.stop().catch((err: any) => {
+              console.warn("[Scanner] Erreur arrêt caméra :", err);
+            });
+          }
+        } catch (e) {
+          console.warn("[Scanner] Exception lors de l'arrêt :", e);
+        }
+      }
+    };
+  }, [cameraActive]);
+
   // Parse if we have a ticket purchased in the ticketing tab
   let purchasedTicket: any = null;
   if (lastGeneratedTicketToken) {
@@ -60,6 +126,22 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
     } catch (e) {
       purchasedTicket = null;
     }
+  }
+
+  if (scannedTicket) {
+    purchasedTicket = scannedTicket;
+  }
+
+  let mediaBadge = {
+    name: "Maria Santos",
+    company: "FIFA Media Services",
+    id: "BADGE-PRESS-782",
+    category: "Média / Presse",
+    zones: ["Tribune presse", "Zone mixte", "Salle conférence"]
+  };
+  
+  if (scannedBadge) {
+    mediaBadge = scannedBadge;
   }
 
   // Audio Synthesizer beep feedback via Web Audio API 
@@ -110,69 +192,107 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
     }
   };
 
-  // Run simulation procedure
-  const handleSimulateScan = (type: 'billet' | 'badge' | 'refus') => {
+  // Run simulation procedure calling Next.js validation proxy
+  const handleSimulateScan = async (target: string, isRawToken = false) => {
     if (scanning) return;
     setScanning(true);
     setScanType(null);
     setShakePanel(false);
 
-    // Simulate viewfinder analysis & server handshaking
-    setTimeout(() => {
+    let token = "";
+    if (isRawToken) {
+      token = target;
+    } else {
+      if (target === 'billet') {
+        token = lastGeneratedTicketToken || JSON.stringify({
+          id: "TK-2030-00042",
+          holder: "Ahmed El Fassi",
+          match: "🇲🇦 Maroc vs 🇧🇷 Brésil",
+          stadium: "Grand Stade Hassan II",
+          city: "Casablanca",
+          cat: "Tribune Centrale — Catégorie 2",
+          gate: "Porte d'Or — A1",
+          seats: "C-Row12-Siège15"
+        });
+      } else if (target === 'badge') {
+        token = "BADGE-PRESS-782";
+      } else {
+        token = "BADGE-ERR-990";
+      }
+    }
+
+    try {
+      const response = await fetch('/api/scan/validate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+      const result = await response.json();
+
       setScanning(false);
-      setScanType(type);
       
       const now = new Date();
       const timeStr = now.toTimeString().split(' ')[0];
-      
-      if (type === 'billet') {
+
+      if (result.valid) {
+        const isTicket = result.payload?.type === 'ticket';
+        setScanType(isTicket ? 'billet' : 'badge');
         playSynthesizedBeep(true);
-        // Prep record
-        const tName = purchasedTicket?.holder || "Ahmed El Fassi";
-        const tMatch = purchasedTicket?.match || "🇲🇦 Maroc vs 🇧🇷 Brésil";
+
+        if (isTicket) {
+          setScannedTicket({
+            id: result.payload?.id || "TK-OK",
+            holder: result.payload?.name || "Ahmed El Fassi",
+            match: result.payload?.detail || "Match FIFA",
+            stadium: result.payload?.stadium || "Grand Stade Hassan II",
+            city: result.payload?.city || "Casablanca",
+            cat: result.payload?.categoryName || "Catégorie 2",
+            gate: result.payload?.gate || "Porte d'Or — A1",
+            seats: result.payload?.seat || "Libre"
+          });
+        } else {
+          setScannedBadge({
+            name: result.payload?.name || "Maria Santos",
+            company: result.payload?.detail || "FIFA Services",
+            id: result.payload?.id || "BADGE-OK",
+            category: "Accrédité Officiel",
+            zones: result.payload?.zones || ["Tribune presse", "Zone mixte", "Salle conférence"]
+          });
+        }
+        
         const newLog: HistoryScanItem = {
-          id: purchasedTicket?.id || "TK-2030-00042",
+          id: result.payload?.id || "ACC-OK",
           time: timeStr,
-          type: "Billet",
-          name: tName,
+          type: isTicket ? "Billet" : "Badge",
+          name: result.payload?.name || "Invité",
           result: "SUCCESS",
-          details: tMatch
+          details: result.payload?.detail || "Accès autorisé"
         };
         setScanHistory(prev => [newLog, ...prev.slice(0, 4)]);
-      } 
-      
-      else if (type === 'badge') {
-        playSynthesizedBeep(true);
-        const newLog: HistoryScanItem = {
-          id: "BADGE-PRESS-782",
-          time: timeStr,
-          type: "Badge",
-          name: "Maria Santos",
-          result: "SUCCESS",
-          details: "Média — FIFA Services"
-        };
-        setScanHistory(prev => [newLog, ...prev.slice(0, 4)]);
-      } 
-      
-      else if (type === 'refus') {
+      } else {
+        setScanType('refus');
         playSynthesizedBeep(false);
         setShakePanel(true);
         
-        // Randomly select negative motif for richness
-        const motifs = ["Badge expiré", "Badge révoqué", "Zone non autorisée"];
-        const chosenMotif = motifs[Math.floor(Math.random() * motifs.length)];
-        
         const newLog: HistoryScanItem = {
-          id: "BADGE-ERR-990",
+          id: result.payload?.id || "ACC-DENIED",
           time: timeStr,
           type: "Badge",
-          name: "Utilisateur Suspect",
+          name: "Accès Refusé",
           result: "DENIED",
-          details: chosenMotif
+          details: result.message || "Code invalide"
         };
         setScanHistory(prev => [newLog, ...prev.slice(0, 4)]);
       }
-    }, 1200);
+    } catch (error) {
+      console.error("[scan] Échec appel validation API :", error);
+      setScanning(false);
+      setScanType('refus');
+      playSynthesizedBeep(false);
+      setShakePanel(true);
+    }
   };
 
   return (
@@ -221,11 +341,39 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
           </div>
         </div>
 
+        {/* Toggle Real Camera Scan */}
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => setCameraActive(!cameraActive)}
+            className={`w-full py-3.5 px-4 rounded-xl border font-display font-bold text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_12px_rgba(52,211,153,0.1)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] ${
+              cameraActive 
+                ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20' 
+                : 'bg-gradient-to-r from-[#34d399] to-[#10b981] text-[#0a0a0a] hover:opacity-95'
+            }`}
+          >
+            <Camera className="w-4 h-4" />
+            <span>{cameraActive ? '❌ Désactiver la caméra' : '📷 Activer la vraie caméra'}</span>
+          </button>
+          
+          {cameraError && (
+            <p className="mt-2 text-center text-xs text-red-400 font-mono flex items-center justify-center gap-1.5 bg-red-500/5 p-2 rounded-lg border border-red-500/20">
+              <AlertOctagon className="w-3.5 h-3.5 shrink-0" />
+              <span>{cameraError}</span>
+            </p>
+          )}
+        </div>
+
         {/* 2. ZONE DE SCAN (Center Viewport - 1:1 format) */}
         <div className="relative w-full aspect-square bg-[#070708] rounded-2xl border border-zinc-900 flex flex-col items-center justify-center overflow-hidden mb-6" id="viewfinder-scan-frame">
           
+          {/* Real Camera Video Layer */}
+          {cameraActive && (
+            <div id="reader" className="absolute inset-0 w-full h-full z-0 [&_video]:object-cover [&_video]:w-full [&_video]:h-full [&_video]:rounded-2xl" />
+          )}
+
           {/* Neon emerald scanning border overlay tracking corners */}
-          <div className="absolute inset-4 pointer-events-none">
+          <div className="absolute inset-4 pointer-events-none z-20">
             {/* Corner Bracket TL */}
             <div className="absolute top-0 left-0 w-8 h-8 border-t-[3.5px] border-l-[3.5px] border-[#34d399] rounded-tl-xl filter drop-shadow-[0_0_8px_rgba(52,211,153,0.7)] animate-pulse" />
             {/* Corner Bracket TR */}
@@ -237,39 +385,43 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
           </div>
 
           {/* Sweep Laser Beam line */}
-          {scanning && (
-            <div className="absolute left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[#34d399] to-transparent shadow-[0_0_15px_rgba(52,211,153,0.9)] z-20 animate-sweep-laser" />
+          {(scanning || cameraActive) && (
+            <div className="absolute left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-[#34d399] to-transparent shadow-[0_0_15px_rgba(52,211,153,0.9)] z-30 animate-sweep-laser" />
           )}
 
-          {/* Matrix matrix overlay for grid styling */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:16px_16px]" />
+          {/* Grid overlay */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#34d399_1px,transparent_1px)] [background-size:16px_16px] z-10" />
 
-          {/* Inner Content Display */}
-          <div className="text-center p-4 z-10 space-y-3">
-            <div className={`w-16 h-16 rounded-full bg-zinc-900/90 border border-zinc-800 flex items-center justify-center mx-auto transition-transform duration-300 ${
-              scanning ? 'scale-110 border-[#34d399]/40 bg-[#34d399]/5' : ''
-            }`}>
-              {scanning ? (
-                <RefreshCw className="w-8 h-8 text-[#34d399] animate-spin" />
-              ) : (
-                <Camera className="w-8 h-8 text-[#34d399] animate-pulse" />
-              )}
+          {/* Inner Placeholder Content (only shown if camera is not active) */}
+          {!cameraActive && (
+            <div className="text-center p-4 z-10 space-y-3">
+              <div className={`w-16 h-16 rounded-full bg-zinc-900/90 border border-zinc-800 flex items-center justify-center mx-auto transition-transform duration-300 ${
+                scanning ? 'scale-110 border-[#34d399]/40 bg-[#34d399]/5' : ''
+              }`}>
+                {scanning ? (
+                  <RefreshCw className="w-8 h-8 text-[#34d399] animate-spin" />
+                ) : (
+                  <Camera className="w-8 h-8 text-[#34d399]" />
+                )}
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-white uppercase tracking-wider">
+                  {scanning ? "Lecture cryptologique..." : "Appareil photo inactif"}
+                </p>
+                <p className="text-[10.5px] text-zinc-400 font-mono tracking-wide max-w-[200px] mx-auto">
+                  {scanning ? "Interrogation de la base FIFA..." : "Activez la vraie caméra ou simulez un scan"}
+                </p>
+              </div>
             </div>
-            
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-white uppercase tracking-wider">
-                {scanning ? "Lecture cryptologique..." : "Appareil photo actif"}
-              </p>
-              <p className="text-[10.5px] text-zinc-400 font-mono tracking-wide max-w-[200px] mx-auto">
-                {scanning ? "Interrogation de la base FIFA..." : "Pointez la caméra vers le QR code"}
-              </p>
-            </div>
-          </div>
+          )}
 
           {/* Corner Watermark */}
-          <div className="absolute bottom-3 right-4 flex items-center gap-1 opacity-40 select-none">
+          <div className="absolute bottom-3 right-4 flex items-center gap-1 opacity-40 select-none z-15">
             <Cpu className="w-3 h-3 text-[#34d399]" />
-            <span className="text-[8px] font-mono tracking-widest text-zinc-500 font-bold uppercase">ACCÈS EN SERVICE</span>
+            <span className="text-[8px] font-mono tracking-widest text-zinc-500 font-bold uppercase">
+              {cameraActive ? "CAMÉRA LIVE" : "ACCÈS EN SERVICE"}
+            </span>
           </div>
 
         </div>
@@ -431,9 +583,9 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
                   </div>
                   
                   <div className="text-left space-y-0.5">
-                    <p className="text-sm font-black text-white">Maria Santos</p>
+                    <p className="text-sm font-black text-white">{mediaBadge.name}</p>
                     <p className="text-[10px] font-mono text-sky-400 flex items-center gap-1">
-                      <Building className="w-3 h-3" /> FIFA Media Services
+                      <Building className="w-3 h-3" /> {mediaBadge.company}
                     </p>
                   </div>
                 </div>
@@ -442,19 +594,19 @@ export default function ScannerSection({ lastGeneratedTicketToken }: ScannerSect
                   <div>
                     <span className="font-mono text-[9px] text-zinc-400 block uppercase">Catégorie</span>
                     <span className="px-2.5 py-0.5 rounded bg-[#34d399]/20 border border-[#34d399]/50 text-[#34d399] text-[9.5px] font-extrabold uppercase inline-block mt-0.5">
-                      Média / Presse
+                      {mediaBadge.category}
                     </span>
                   </div>
 
                   <div>
                     <span className="font-mono text-[9px] text-zinc-400 block uppercase">N° Accréditation</span>
-                    <span className="font-mono font-bold text-white block mt-0.5">BADGE-PRESS-782</span>
+                    <span className="font-mono font-bold text-white block mt-0.5">{mediaBadge.id}</span>
                   </div>
 
                   <div className="col-span-2 border-t border-zinc-800/60 pt-2">
                     <span className="font-mono text-[9px] text-zinc-400 block uppercase mb-1">Zones autorisées</span>
                     <div className="flex flex-wrap gap-1">
-                      {["Tribune presse", "Zone mixte", "Salle conférence"].map(zone => (
+                      {mediaBadge.zones.map(zone => (
                         <span key={zone} className="px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-300 font-mono text-[9px] font-bold">
                           {zone}
                         </span>

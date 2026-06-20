@@ -3,22 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-"use client";
+import React, { Suspense } from "react";
+import StadiumsSectionWrapper from "./StadiumsSectionWrapper";
+import { getStadiums } from "@/lib/services/stadiumService";
 
-import React from "react";
-import { useRouter } from "next/navigation";
-import StadiumsSection from "@/components/features/StadiumsSection";
-
-export default function StadiumsPage() {
-  const router = useRouter();
-
-  const handleViewMatches = (stadiumName: string) => {
-    router.push(`/matches?stadium=${encodeURIComponent(stadiumName)}`);
-  };
+export default async function StadiumsPage() {
+  // Direct Server Side fetch with ISR caching
+  const initialStadiums = await getStadiums();
 
   return (
     <div className="pt-16 pb-12">
-      <StadiumsSection onViewMatchesInStadium={handleViewMatches} />
+      <Suspense fallback={<div className="text-center py-20 text-zinc-500">Chargement des stades...</div>}>
+        <StadiumsSectionWrapper initialStadiums={initialStadiums} />
+      </Suspense>
     </div>
   );
 }
