@@ -8,22 +8,35 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { QrCode, Menu, X } from "lucide-react";
+import { QrCode, Menu, X, LogIn, UserCircle, LogOut } from "lucide-react";
+import { useAuth } from "@/lib/hooks/AuthContext";
 
 export default function Navbar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const activeTabParam = searchParams.get("tab");
+  const { user, logout, setAuthModalOpen } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Nav Links Configuration
   const navLinks = [
     { label: "Matches", href: "/matches", activeCheck: () => pathname === "/matches" },
     { label: "Stades", href: "/stadiums", activeCheck: () => pathname === "/stadiums" },
-    { label: "Billetterie 🎫", href: "/tickets", activeCheck: () => pathname === "/tickets" },
-    { label: "Volontaires", href: "/volunteer/register", activeCheck: () => pathname.startsWith("/volunteer") },
-    { label: "Dashboard", href: "/dashboard", activeCheck: () => pathname === "/dashboard" }
+    { label: "Billetterie 🎫", href: "/tickets", activeCheck: () => pathname === "/tickets" }
   ];
+
+  // Adjust volunteer link based on role
+  if (user?.role === 'volunteer') {
+    navLinks.push({ label: "Espace Volontaire", href: "/volunteer/dashboard", activeCheck: () => pathname === "/volunteer/dashboard" });
+  } else if (user?.role === 'public') {
+    navLinks.push({ label: "Espace Volontaire", href: "/volunteer/register", activeCheck: () => pathname === "/volunteer/register" });
+  } else {
+    navLinks.push({ label: "Volontaires", href: "/volunteer/register", activeCheck: () => pathname.startsWith("/volunteer") });
+  }
+
+  // Adjust admin dashboard link
+  if (user?.role === 'admin') {
+    navLinks.push({ label: "Dashboard", href: "/dashboard", activeCheck: () => pathname === "/dashboard" });
+  }
 
   return (
     <>
@@ -48,7 +61,7 @@ export default function Navbar() {
             return (
               <Link
                 key={idx}
-                id={`nav-${link.label.toLowerCase()}`}
+                id={`nav-${link.label.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
                 href={link.href}
                 className={`py-1 px-1.5 cursor-pointer transition-all hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded relative ${
                   isActive ? "text-[#34d399] font-bold" : ""
@@ -64,26 +77,57 @@ export default function Navbar() {
         </nav>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-3">
-          {/* Scanner QR Trigger */}
-          <Link
-            id="nav-scanner"
-            href="/scan"
-            title="Contrôle des Accès Securisés"
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl cursor-pointer font-display font-bold text-xs uppercase tracking-widest transition-all duration-300 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] ${
-              pathname === "/scan"
-                ? "bg-[#34d399] text-[#0a0a0a] border-white shadow-[0_0_15px_rgba(52,211,153,0.3)]"
-                : "bg-zinc-800/60 border-zinc-700/60 text-white hover:bg-zinc-700/80"
-            }`}
-          >
-            <span className="hidden sm:inline">Scanner</span>
-            <QrCode className="w-3.5 h-3.5" />
-          </Link>
+        <div className="flex items-center gap-4">
+          {/* Scanner QR Trigger (Admin only) */}
+          {user?.role === 'admin' && (
+            <Link
+              id="nav-scanner"
+              href="/scan"
+              title="Contrôle des Accès Securisés"
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl cursor-pointer font-display font-bold text-xs uppercase tracking-widest transition-all duration-300 border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] ${
+                pathname === "/scan"
+                  ? "bg-[#34d399] text-[#0a0a0a] border-white shadow-[0_0_15px_rgba(52,211,153,0.3)]"
+                  : "bg-zinc-800/60 border-zinc-700/60 text-white hover:bg-zinc-700/80"
+              }`}
+            >
+              <span className="hidden sm:inline">Scanner</span>
+              <QrCode className="w-3.5 h-3.5" />
+            </Link>
+          )}
+
+          {/* User authentication interface */}
+          {user ? (
+            <div className="flex items-center gap-3">
+              <div className="hidden lg:flex flex-col text-right">
+                <span className="text-[11px] font-bold text-white leading-tight">
+                  {user.name.split(' ')[0]}
+                </span>
+                <span className="text-[9px] text-[#34d399] font-semibold tracking-wider uppercase">
+                  {user.role === 'admin' ? 'Organisateur' : user.role === 'volunteer' ? 'Volontaire' : 'Supporter'}
+                </span>
+              </div>
+              <button
+                onClick={logout}
+                title="Se déconnecter"
+                className="p-2 rounded-xl bg-zinc-800/50 hover:bg-red-950/40 border border-zinc-700/40 hover:border-red-900/30 text-zinc-400 hover:text-red-400 transition-all duration-200 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAuthModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white transition-all duration-200 cursor-pointer shadow-lg shadow-emerald-500/10"
+            >
+              <span>Connexion</span>
+              <LogIn className="w-3.5 h-3.5" />
+            </button>
+          )}
 
           {/* Mobile Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex md:hidden text-zinc-400 hover:text-white p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded-lg"
+            className="flex md:hidden text-zinc-400 hover:text-white p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded-lg cursor-pointer"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -123,7 +167,7 @@ export default function Navbar() {
           <span>Billetterie</span>
         </Link>
         <Link
-          href="/volunteer/register"
+          href={user?.role === 'volunteer' ? "/volunteer/dashboard" : "/volunteer/register"}
           className={`flex flex-col items-center gap-0.5 cursor-pointer hover:text-[#34d399] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] rounded transition-all ${
             pathname.startsWith("/volunteer") ? "text-[#34d399]" : ""
           }`}

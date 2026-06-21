@@ -77,7 +77,7 @@ export const MOCK_FIXTURES: CompMatch[] = [
     status: 'Planifié',
   },
   {
-    id: 'match-8', homeTeam: 'Angleterre', homeFlag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', awayTeam: 'Sénégal', awayFlag: '🇸🇳',
+    id: 'match-8', homeTeam: 'Angleterre', homeFlag: '🇬🇧', awayTeam: 'Sénégal', awayFlag: '🇸🇳',
     phase: 'Phase de groupes', phaseCategory: 'Groupes', group: 'E',
     stadium: 'Grand Stade de Marrakech', city: 'Marrakech',
     day: '20', month: 'Juin', date: '20 Juin 2030', time: '18:00',

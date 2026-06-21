@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { AuthProvider } from "@/lib/hooks/AuthContext";
+import AuthModal from "@/components/features/AuthModal";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -34,15 +36,22 @@ export default function RootLayout({
     <html
       lang="fr"
       className={`${inter.variable} ${outfit.variable} ${geistMono.variable} h-full antialiased dark`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-[#0a0a0a] text-[#f4f4f5] selection:bg-[#34d399]/30 selection:text-[#34d399] font-sans">
-        <Suspense fallback={null}>
-          <Navbar />
-        </Suspense>
-        <main className="flex-grow flex flex-col">
-          {children}
-        </main>
-        <Footer />
+      <body 
+        className="min-h-full flex flex-col bg-[#0a0a0a] text-[#f4f4f5] selection:bg-[#34d399]/30 selection:text-[#34d399] font-sans"
+        suppressHydrationWarning
+      >
+        <AuthProvider>
+          <Suspense fallback={null}>
+            <Navbar />
+          </Suspense>
+          <main className="flex-grow flex flex-col">
+            {children}
+          </main>
+          <Footer />
+          <AuthModal />
+        </AuthProvider>
       </body>
     </html>
   );

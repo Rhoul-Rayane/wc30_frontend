@@ -201,6 +201,7 @@ export const MOCK_VOLUNTEERS: OdooVolunteer[] = [
     state: 'active',
     matching_score: 94,
     points: 150,
+    badge_count: 3,
     application_date: '2026-05-01'
   },
   {
@@ -224,6 +225,7 @@ export const MOCK_VOLUNTEERS: OdooVolunteer[] = [
     state: 'assigned',
     matching_score: 87,
     points: 80,
+    badge_count: 1,
     application_date: '2026-05-10'
   },
   {
@@ -247,6 +249,7 @@ export const MOCK_VOLUNTEERS: OdooVolunteer[] = [
     state: 'trained',
     matching_score: 78,
     points: 40,
+    badge_count: 0,
     application_date: '2026-05-12'
   }
 ];
@@ -310,6 +313,7 @@ export async function getVolunteerByEmail(email: string): Promise<OdooVolunteer 
         'state',
         'matching_score',
         'points',
+        'badge_count',
         'application_date'
       ]
     });
@@ -326,6 +330,214 @@ export async function getVolunteerByEmail(email: string): Promise<OdooVolunteer 
     // Fallback de secours en mock si Odoo est indisponible
     const volunteer = MOCK_VOLUNTEERS.find(v => v.email.toLowerCase() === cleanEmail);
     return volunteer || null;
+  }
+}
+
+export async function updateVolunteer(email: string, data: Partial<CreateVolunteerData>): Promise<{ success: boolean; message?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+
+  if (USE_MOCK) {
+    console.log('[volunteerService] Mode MOCK - Mise à jour du volontaire :', cleanEmail, data);
+    const index = MOCK_VOLUNTEERS.findIndex(v => v.email.toLowerCase() === cleanEmail);
+    if (index !== -1) {
+      const vol = MOCK_VOLUNTEERS[index];
+
+      if (data.name !== undefined) vol.name = data.name;
+      if (data.phone !== undefined) vol.phone = data.phone || false;
+      if (data.date_of_birth !== undefined) vol.date_of_birth = data.date_of_birth || false;
+      if (data.nationality !== undefined) vol.nationality = data.nationality || false;
+      if (data.id_number !== undefined) vol.id_number = data.id_number || false;
+      if (data.experience !== undefined) vol.experience = data.experience || false;
+
+      if (data.has_driving_license !== undefined) vol.has_driving_license = data.has_driving_license;
+      if (data.has_vehicle !== undefined) vol.has_vehicle = data.has_vehicle;
+      if (data.has_first_aid !== undefined) vol.has_first_aid = data.has_first_aid;
+
+      if (data.education_level !== undefined) {
+        let odooEdu: any = false;
+        if (data.education_level.includes('Bac+5') || data.education_level.includes('Master')) odooEdu = 'bac5';
+        else if (data.education_level.includes('Bac+3') || data.education_level.includes('Licence')) odooEdu = 'bac3';
+        else if (data.education_level.includes('Bac+2') || data.education_level.includes('BTS') || data.education_level.includes('DUT')) odooEdu = 'bac2';
+        else if (data.education_level.includes('Doctorat') || data.education_level.includes('phd')) odooEdu = 'phd';
+        else odooEdu = 'bac';
+        vol.education_level = odooEdu;
+      }
+
+      if (data.availability !== undefined) {
+        let odooAvail: any = 'full';
+        if (data.availability.includes('Matin')) odooAvail = 'morning';
+        else if (data.availability.includes('Soir')) odooAvail = 'evening';
+        else if (data.availability.includes('Week-end') || data.availability.includes('Weekend')) odooAvail = 'weekend';
+        else odooAvail = 'full';
+        vol.availability = odooAvail;
+      }
+
+      if (data.preferred_stadium_id !== undefined) {
+        if (data.preferred_stadium_id === 'Pas de préférence') {
+          vol.preferred_stadium_id = false;
+        } else {
+          vol.preferred_stadium_id = [1, data.preferred_stadium_id];
+        }
+      }
+
+      if (data.skills !== undefined) {
+        vol.skill_ids = data.skills.map((s, idx) => [idx + 1, s]);
+      }
+
+      if (data.languages !== undefined) {
+        vol.language_ids = data.languages.map((l, idx) => [idx + 1, l]);
+      }
+
+      // Recalculate score
+      let score = 0;
+      score += Math.min((data.languages || []).length * 6, 30);
+      score += Math.min((data.skills || []).length * 5, 30);
+      if (data.has_driving_license) score += 10;
+      if (data.has_vehicle) score += 5;
+      if (data.has_first_aid || (data.skills || []).includes("Premiers secours")) score += 10;
+      if (data.availability === "Temps plein") score += 10;
+      else if (data.availability?.includes("Matin") || data.availability?.includes("Soir")) score += 5;
+      else if (data.availability?.includes("Week-end")) score += 3;
+
+      if (data.education_level?.includes("Doctorat")) score += 5;
+      else if (data.education_level?.includes("Master") || data.education_level?.includes("Bac+5")) score += 4;
+      else if (data.education_level?.includes("Licence") || data.education_level?.includes("Bac+3")) score += 3;
+      else if (data.education_level?.includes("Bac+2")) score += 2;
+      else score += 1;
+
+      vol.matching_score = Math.min(100, Math.max(0, score));
+
+      return { success: true, message: 'Mis à jour avec succès (Mock)' };
+    }
+    return { success: false, message: 'Volontaire non trouvé' };
+  }
+
+  try {
+    const volunteer = await getVolunteerByEmail(cleanEmail);
+    if (!volunteer) {
+      return { success: false, message: 'Volontaire non trouvé dans Odoo' };
+    }
+
+    const payload: any = {};
+
+    if (data.name !== undefined) payload.name = data.name;
+    if (data.phone !== undefined) payload.phone = data.phone || false;
+    if (data.date_of_birth !== undefined) payload.date_of_birth = data.date_of_birth || false;
+    if (data.nationality !== undefined) payload.nationality = data.nationality || false;
+    if (data.id_number !== undefined) payload.id_number = data.id_number || false;
+    if (data.experience !== undefined) payload.experience = data.experience || false;
+    if (data.has_driving_license !== undefined) payload.has_driving_license = !!data.has_driving_license;
+    if (data.has_vehicle !== undefined) payload.has_vehicle = !!data.has_vehicle;
+    if (data.has_first_aid !== undefined) payload.has_first_aid = !!data.has_first_aid;
+
+    if (data.education_level !== undefined) {
+      let odooEdu: 'bac' | 'bac2' | 'bac3' | 'bac5' | 'phd' | false = false;
+      if (data.education_level.includes('Bac+5') || data.education_level.includes('Master')) odooEdu = 'bac5';
+      else if (data.education_level.includes('Bac+3') || data.education_level.includes('Licence')) odooEdu = 'bac3';
+      else if (data.education_level.includes('Bac+2') || data.education_level.includes('BTS') || data.education_level.includes('DUT')) odooEdu = 'bac2';
+      else if (data.education_level.includes('Doctorat') || data.education_level.includes('phd')) odooEdu = 'phd';
+      else odooEdu = 'bac';
+      payload.education_level = odooEdu;
+    }
+
+    if (data.availability !== undefined) {
+      let odooAvail: 'full' | 'morning' | 'evening' | 'weekend' = 'full';
+      if (data.availability.includes('Matin')) odooAvail = 'morning';
+      else if (data.availability.includes('Soir')) odooAvail = 'evening';
+      else if (data.availability.includes('Week-end') || data.availability.includes('Weekend')) odooAvail = 'weekend';
+      else if (data.availability.includes('Plein') || data.availability.includes('plein') || data.availability === 'Temps plein') odooAvail = 'full';
+      payload.availability = odooAvail;
+    }
+
+    if (data.preferred_stadium_id !== undefined) {
+      let odooStadiumId: number | false = false;
+      if (data.preferred_stadium_id && data.preferred_stadium_id !== 'Pas de préférence') {
+        const prefName = data.preferred_stadium_id.toLowerCase();
+        let searchName = '';
+        if (prefName.includes('casablanca') || prefName.includes('hassan ii')) {
+          searchName = 'Grand Stade Hassan II';
+        } else if (prefName.includes('rabat') || prefName.includes('moulay abdellah')) {
+          searchName = 'Stade Prince Moulay Abdellah';
+        } else if (prefName.includes('tanger')) {
+          searchName = 'Grand Stade de Tanger';
+        } else if (prefName.includes('marrakech')) {
+          searchName = 'Grand Stade de Marrakech';
+        } else if (prefName.includes('fès') || prefName.includes('fes')) {
+          searchName = 'Stade de Fès';
+        } else if (prefName.includes('agadir')) {
+          searchName = 'Grand Stade d\'Agadir';
+        }
+
+        if (searchName) {
+          try {
+            const odooStadiums = await callOdoo<{ id: number; name: string }[]>('wc.stadium', 'search_read', [
+              [['name', '=', searchName]]
+            ], { fields: ['id', 'name'] });
+            if (odooStadiums && odooStadiums.length > 0) {
+              odooStadiumId = odooStadiums[0].id;
+            }
+          } catch (err) {
+            console.error('[volunteerService] Erreur recherche stade dans Odoo pour update :', err);
+          }
+        }
+      }
+      payload.preferred_stadium_id = odooStadiumId;
+    }
+
+    if (data.skills !== undefined) {
+      try {
+        const allSkills = await callOdoo<{ id: number; name: string }[]>('wc.volunteer.skill', 'search_read', [], {
+          fields: ['id', 'name']
+        });
+        const mappedSkillNames = data.skills.map(s => {
+          const clean = s.trim().toLowerCase();
+          return SKILL_MAP[clean] || s;
+        });
+        const skillIds = mappedSkillNames
+          .map(sName => allSkills.find(s => s.name.trim().toLowerCase() === sName.trim().toLowerCase())?.id)
+          .filter((id): id is number => id !== undefined);
+
+        payload.skill_ids = [[6, 0, skillIds]];
+      } catch (err) {
+        console.error('[volunteerService] Erreur update compétences Odoo :', err);
+      }
+    }
+
+    if (data.languages !== undefined) {
+      try {
+        const allLanguages = await callOdoo<{ id: number; name: string }[]>('wc.volunteer.language', 'search_read', [], {
+          fields: ['id', 'name']
+        });
+        const languageIds = data.languages
+          .map(lName => allLanguages.find(l => l.name.trim().toLowerCase() === lName.trim().toLowerCase())?.id)
+          .filter((id): id is number => id !== undefined);
+
+        payload.language_ids = [[6, 0, languageIds]];
+      } catch (err) {
+        console.error('[volunteerService] Erreur update langues Odoo :', err);
+      }
+    }
+
+    if (data.matching_score !== undefined) {
+      payload.matching_score = data.matching_score;
+    }
+
+    const success = await callOdoo<boolean>('wc.volunteer', 'write', [[volunteer.id], payload]);
+    console.log('[volunteerService] Volontaire mis à jour dans Odoo :', volunteer.id, success);
+    return { success };
+  } catch (error: any) {
+    console.error('[volunteerService] Erreur lors de la mise à jour Odoo. Fallback local.', error);
+    const index = MOCK_VOLUNTEERS.findIndex(v => v.email.toLowerCase() === cleanEmail);
+    if (index !== -1) {
+      const vol = MOCK_VOLUNTEERS[index];
+      if (data.phone !== undefined) vol.phone = data.phone || false;
+      if (data.nationality !== undefined) vol.nationality = data.nationality || false;
+      if (data.experience !== undefined) vol.experience = data.experience || false;
+      if (data.skills !== undefined) vol.skill_ids = data.skills.map((s, idx) => [idx + 1, s]);
+      if (data.languages !== undefined) vol.language_ids = data.languages.map((l, idx) => [idx + 1, l]);
+      return { success: true, message: 'Mis à jour localement (fallback suite à erreur Odoo)' };
+    }
+    return { success: false, message: error?.message || 'Erreur interne lors de la mise à jour' };
   }
 }
 

@@ -232,3 +232,63 @@ export async function callOdooController<T>(
 
   return data.result as T;
 }
+
+/**
+ * Authentifie un utilisateur individuel auprès d'Odoo.
+ * Retourne le UID de l'utilisateur ou null si les identifiants sont incorrects.
+ */
+export async function authenticateUser(email: string, password: string): Promise<number | null> {
+  try {
+    const payload = {
+      jsonrpc: '2.0',
+      method: 'call',
+      params: {
+        service: 'common',
+        method: 'authenticate',
+        args: [ODOO_CONFIG.db, email, password, {}],
+      },
+      id: Math.floor(Math.random() * 100000),
+    };
+
+    const response = await fetch(`${ODOO_CONFIG.url}/jsonrpc`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP Odoo : ${response.status}`);
+    }
+
+    const data: OdooRpcResponse<number | false> = await response.json();
+    if (data.error) {
+      throw new Error(`Erreur Odoo RPC : ${data.error.data?.message || data.error.message}`);
+    }
+
+    return typeof data.result === 'number' ? data.result : null;
+  } catch (error) {
+    console.error('[Odoo Auth] Erreur d\'authentification pour', email, error);
+    return null;
+  }
+}
+
+/**
+ * Crée un utilisateur portail dans Odoo.
+ */
+export async function createPortalUser(name: string, email: string, password: string): Promise<number> {
+  // Le groupe portail dans Odoo a l'ID 10 (Role / Portal)
+  const portalGroupId = 10;
+
+  const payload = {
+    name,
+    login: email,
+    email,
+    password,
+    group_ids: [[6, 0, [portalGroupId]]],
+    share: true,
+  };
+
+  const newUserId = await callOdoo<number>('res.users', 'create', [payload]);
+  return newUserId;
+}

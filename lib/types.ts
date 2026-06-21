@@ -350,6 +350,7 @@ export interface OdooVolunteer {
   state: 'candidate' | 'preselected' | 'trained' | 'assigned' | 'active' | 'archived';
   matching_score: number;
   points: number;
+  badge_count: number;
   application_date: string;
 }
 
@@ -486,14 +487,145 @@ const STATE_MAP: Record<string, string> = {
   cancelled: 'Annulé',
 };
 
+export const TEAM_TRANSLATIONS: Record<string, string> = {
+  // English -> French
+  'Morocco': 'Maroc',
+  'Algeria': 'Algérie',
+  'Angola': 'Angola',
+  'Cameroon': 'Cameroun',
+  'Egypt': 'Égypte',
+  'Ghana': 'Ghana',
+  'Ivory Coast': 'Côte d\'Ivoire',
+  'Nigeria': 'Nigéria',
+  'Senegal': 'Sénégal',
+  'Tunisia': 'Tunisie',
+  'South Africa': 'Afrique du Sud',
+
+  'Germany': 'Allemagne',
+  'England': 'Angleterre',
+  'Austria': 'Autriche',
+  'Belgium': 'Belgique',
+  'Bosnia and Herzegovina': 'Bosnie-Herzégovine',
+  'Bulgaria': 'Bulgarie',
+  'Croatia': 'Croatie',
+  'Denmark': 'Danemark',
+  'Spain': 'Espagne',
+  'France': 'France',
+  'Italy': 'Italie',
+  'Netherlands': 'Pays-Bas',
+  'Portugal': 'Portugal',
+  'Switzerland': 'Suisse',
+  'Sweden': 'Suède',
+  'Turkey': 'Turquie',
+  'Ukraine': 'Ukraine',
+
+  'Argentina': 'Argentine',
+  'Bolivia': 'Bolivie',
+  'Brazil': 'Brésil',
+  'Chile': 'Chili',
+  'Colombia': 'Colombie',
+  'Ecuador': 'Équateur',
+  'Paraguay': 'Paraguay',
+  'Peru': 'Pérou',
+  'Uruguay': 'Uruguay',
+  'Venezuela': 'Venezuela',
+
+  'Canada': 'Canada',
+  'United States': 'États-Unis',
+  'Mexico': 'Mexique',
+  'Costa Rica': 'Costa Rica',
+  'Honduras': 'Honduras',
+  'Jamaica': 'Jamaïque',
+  'Panama': 'Panama',
+
+  'Australia': 'Australie',
+  'China': 'Chine',
+  'Japan': 'Japon',
+  'South Korea': 'Corée du Sud',
+  'Saudi Arabia': 'Arabie Saoudite',
+  'Iran': 'Iran',
+};
+
+export const TEAM_FLAGS: Record<string, string> = {
+  'Maroc': '🇲🇦', 'Morocco': '🇲🇦',
+  'Algérie': '🇩🇿', 'Algeria': '🇩🇿',
+  'Angola': '🇦🇴',
+  'Cameroun': '🇨🇲', 'Cameroon': '🇨🇲',
+  'Égypte': '🇪🇬', 'Egypt': '🇪🇬',
+  'Ghana': '🇬🇭',
+  'Côte d\'Ivoire': '🇨🇮', 'Ivory Coast': '🇨🇮',
+  'Nigéria': '🇳🇬', 'Nigeria': '🇳🇬',
+  'Sénégal': '🇸🇳', 'Senegal': '🇸🇳',
+  'Tunisie': '🇹🇳', 'Tunisia': '🇹🇳',
+  'Afrique du Sud': '🇿🇦', 'South Africa': '🇿🇦',
+
+  'Allemagne': '🇩🇪', 'Germany': '🇩🇪',
+  'Angleterre': '🇬🇧', 'England': '🇬🇧',
+  'Autriche': '🇦🇹', 'Austria': '🇦🇹',
+  'Belgique': '🇧🇪', 'Belgium': '🇧🇪',
+  'Bosnie-Herzégovine': '🇧🇦', 'Bosnia and Herzegovina': '🇧🇦',
+  'Bulgarie': '🇧🇬', 'Bulgaria': '🇧🇬',
+  'Croatie': '🇭🇷', 'Croatia': '🇭🇷',
+  'Danemark': '🇩🇰', 'Denmark': '🇩🇰',
+  'Espagne': '🇪🇸', 'Spain': '🇪🇸',
+  'France': '🇫🇷',
+  'Italie': '🇮🇹', 'Italy': '🇮🇹',
+  'Pays-Bas': '🇳🇱', 'Netherlands': '🇳🇱',
+  'Portugal': '🇵🇹',
+  'Suisse': '🇨🇭', 'Switzerland': '🇨🇭',
+  'Suède': '🇸🇪', 'Sweden': '🇸🇪',
+  'Turquie': '🇹🇷', 'Turkey': '🇹🇷',
+  'Ukraine': '🇺🇦',
+
+  'Argentine': '🇦🇷', 'Argentina': '🇦🇷',
+  'Bolivie': '🇧🇴', 'Bolivia': '🇧🇴',
+  'Brésil': '🇧🇷', 'Brazil': '🇧🇷',
+  'Chili': '🇨🇱', 'Chile': '🇨🇱',
+  'Colombie': '🇨🇴', 'Colombia': '🇨🇴',
+  'Équateur': '🇪🇨', 'Ecuador': '🇪🇨',
+  'Paraguay': '🇵🇾',
+  'Pérou': '🇵🇪', 'Peru': '🇵🇪',
+  'Uruguay': '🇺🇾',
+  'Venezuela': '🇻🇪',
+
+  'Canada': '🇨🇦',
+  'États-Unis': '🇺🇸', 'United States': '🇺🇸',
+  'Mexique': '🇲🇽', 'Mexico': '🇲🇽',
+  'Costa Rica': '🇨🇷',
+  'Honduras': '🇭🇳',
+  'Jamaïque': '🇯🇲', 'Jamaica': '🇯🇲',
+  'Panama': '🇵🇦',
+
+  'Australie': '🇦🇺', 'Australia': '🇦🇺',
+  'Chine': '🇨🇳', 'China': '🇨🇳',
+  'Japon': '🇯🇵', 'Japan': '🇯🇵',
+  'Corée du Sud': '🇰🇷', 'South Korea': '🇰🇷',
+  'Arabie Saoudite': '🇸🇦', 'Saudi Arabia': '🇸🇦',
+  'Iran': '🇮🇷',
+};
+
+export function translateTeamName(name: string): string {
+  if (!name) return name;
+  const trimmed = name.trim();
+  return TEAM_TRANSLATIONS[trimmed] || trimmed;
+}
+
+export function getTeamFlag(name: string): string {
+  if (!name) return '🏳️';
+  const trimmed = name.trim();
+  return TEAM_FLAGS[trimmed] || TEAM_FLAGS[translateTeamName(trimmed)] || '🏳️';
+}
+
 /** Convertit un match Odoo vers l'interface Match du frontend */
 export function mapOdooMatch(raw: OdooMatch): Match {
+  const homeFr = translateTeamName(raw.team_a);
+  const awayFr = translateTeamName(raw.team_b);
   return {
     id: `match-${raw.id}`,
-    homeTeam: raw.team_a,
-    homeFlag: '',  // Les drapeaux emoji ne sont pas dans Odoo — sera enrichi côté frontend
-    awayTeam: raw.team_b,
-    awayFlag: '',
+    homeTeam: homeFr,
+    homeFlag: getTeamFlag(homeFr),
+    awayTeam: awayFr,
+    awayFlag: getTeamFlag(awayFr),
     phase: PHASE_MAP[raw.phase] || raw.phase,
     stadium: raw.stadium_id[1],
     city: '',  // Dérivé du stade côté frontend
@@ -526,4 +658,15 @@ export function mapOdooStadium(raw: OdooStadium): Stadium {
     description: raw.address || '',
     features: [],
   };
+}
+
+export interface AuthUser {
+  uid: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'volunteer' | 'public';
+}
+
+export interface AuthSession {
+  user: AuthUser | null;
 }

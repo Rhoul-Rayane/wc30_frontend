@@ -157,4 +157,78 @@ Nous avons résolu l'incohérence entre les informations affichées sur le site 
     *   Les relations Many2many de compétences ont bien été associées en base de données (*IDs `[4, 6, 7]` correspondants*).
     *   Le score de matching recalculé à la volée par Odoo est de **65%**, correspondant exactement à la valeur théorique calculée sur le frontend, éliminant ainsi toute incohérence d'affichage.
 
+---
+
+## Correction de l'Espace Volontaire & Flux de Redirection Directe
+
+Nous avons résolu le problème de l'affichage de la carte intermédiaire "Rejoignez l'équipe" et fluidifié l'accès à la saisie d'informations pour les supporters.
+
+### 1. Modifications Apportées
+*   **Routage Intelligent dans la Barre de Navigation ([Navbar.tsx](file:///c:/Users/rayan/Documents/dev/wc30_frontend/components/layout/Navbar.tsx))** :
+    *   Si l'utilisateur est connecté mais n'a pas encore de fiche de volontaire dans Odoo (rôle `public` / Supporter), le lien **Espace Volontaire** pointe désormais directement vers le formulaire de candidature `/volunteer/register`.
+    *   S'il a déjà postulé et possède une fiche (rôle `volunteer`), le lien le dirige vers son tableau de bord personnel `/volunteer/dashboard`.
+    *   Cette même logique a été appliquée à la barre de navigation mobile au bas de l'écran.
+*   **Protection contre le Flash Visuel de la Carte ([page.tsx](file:///c:/Users/rayan/Documents/dev/wc30_frontend/app/volunteer/dashboard/page.tsx))** :
+    *   Dans le cas d'une redirection automatique depuis le tableau de bord (par exemple si l'utilisateur accède manuellement à `/volunteer/dashboard` sans avoir de profil), un drapeau `redirecting` a été ajouté au chargement de profil.
+    *   Cela maintient le spinner de chargement actif et empêche le composant de passer l'état `initialLoading` à `false` pendant la redirection. La carte intermédiaire "Rejoignez l'équipe" ne flashe plus à l'écran.
+*   **Mise à Jour Dynamique de la Session ([route.ts](file:///c:/Users/rayan/Documents/dev/wc30_frontend/app/api/volunteers/route.ts))** :
+    *   Dès que le formulaire d'inscription est soumis avec succès, la route API BFF `/api/volunteers` met à jour à la volée le cookie de session locale `wc30_session` pour basculer le rôle de l'utilisateur de `public` à `volunteer`.
+    *   Cela garantit que l'utilisateur est immédiatement reconnu comme volontaire lors du rechargement de la page, sans avoir à se déconnecter et se reconnecter.
+
+### 2. Validation
+*   **Build de Production Next.js** : La commande `npm run build` a été exécutée et s'est terminée avec succès (compilation Turbopack et TypeScript validées sans erreur).
+*   **Fluidité de l'Expérience** : Le flux est maintenant direct et sans interruption, guidant instantanément le supporter vers le formulaire d'inscription dès qu'il souhaite accéder à l'espace volontaire.
+
+---
+
+## Alignement du Filtre des Stades (Rabat & Fès)
+
+Nous avons résolu l'incohérence de filtrage sur la page des matchs pour les stades de Rabat et de Fès, causée par des différences de dénomination entre la base de données Odoo et les valeurs du filtre du frontend.
+
+### 1. Dénomination des Stades Identifiés
+En interrogeant la base de données Odoo locale (`worldcup`), nous avons identifié les 6 stades officiels hébergeant des matchs :
+1. `Grand Stade Hassan II` (Casablanca)
+2. `Stade Prince Moulay Abdellah` (Rabat) — *incohérence avec "Grand Stade de Rabat" du filtre*
+3. `Grand Stade de Tanger` (Tanger)
+4. `Stade de Fès` (Fès) — *incohérence avec "Grand Stade de Fès" du filtre*
+5. `Grand Stade de Marrakech` (Marrakech)
+6. `Grand Stade d'Agadir` (Agadir)
+
+### 2. Modifications Apportées ([MatchesSection.tsx](file:///c:/Users/rayan/Documents/dev/wc30_frontend/components/features/MatchesSection.tsx))
+*   **Mise à Jour des Options de Sélection** : Les valeurs et libellés du sélecteur de filtrage ont été alignés sur les dénominations officielles de la base de données (`Stade Prince Moulay Abdellah` et `Stade de Fès`).
+*   **Normalisation Intelligente des Noms** : Ajout d'une fonction de normalisation `normalizeStadiumName` comparant les noms de stades par mot-clé (ex: "Moulay" ou "Rabat" matchent ensemble, "Fès" ou "Fes" matchent ensemble). Cela garantit que le filtrage fonctionne de manière transparente, que le match provienne d'Odoo (en base de données) ou des fixtures mockées en local (fallback).
+*   **Mapping des Paramètres d'Entrée** : La prise en compte du filtre par stade passé en paramètre d'URL (depuis la page d'exploration de la carte interactive des stades) a également été mise à jour pour mapper correctement les anciens noms (ex: "Grand Stade de Rabat") vers les nouveaux (ex: "Stade Prince Moulay Abdellah").
+
+### 3. Validation
+*   **Compilation réussie** : Le projet a été compilé avec succès (`next build`) sans aucune erreur.
+*   **Fonctionnalité vérifiée** : Choisir "Stade Prince Moulay Abdellah (Rabat)" filtre désormais correctement les matchs correspondants (par exemple France vs Allemagne) et affiche l'historique sans aucune anomalie.
+
+---
+
+## Unification en Français & Résolution des Drapeaux (Calendrier des Matchs)
+
+Nous avons uniformisé les noms de pays en français et résolu les problèmes d'affichage des drapeaux pays sur le calendrier des matchs et la billetterie.
+
+### 1. Traduction Centralisée & Table des Drapeaux
+*   **Dictionnaires constants (`lib/types.ts`)** :
+    *   `TEAM_TRANSLATIONS` : Dictionnaire de traduction Anglais ➔ Français (ex: `Morocco` ➔ `Maroc`, `Spain` ➔ `Espagne`, etc.) couvrant 48 équipes potentielles du tournoi.
+    *   `TEAM_FLAGS` : Table de correspondance de tous les drapeaux emojis associés aux noms de pays (supportant les clés en français et en anglais).
+*   **Utilitaires de mapping (`lib/types.ts`)** :
+    *   `translateTeamName(name)` : Traduit un nom de pays en français ou renvoie la chaîne d'origine si le nom est inconnu.
+    *   `getTeamFlag(name)` : Résout le drapeau emoji correct à partir du nom.
+
+### 2. Mapping à la source (`lib/types.ts` & `mapOdooMatch`)
+*   La fonction `mapOdooMatch` traduit désormais directement les équipes Odoo (`raw.team_a` et `raw.team_b`) lors de la conversion de l'objet et y associe le drapeau emoji résolu à la source. Ainsi, toutes les pages (y compris la billetterie `/tickets`) reçoivent des objets `Match` contenant déjà les noms en français et les bons drapeaux.
+
+### 3. Enrichissement local robuste (`components/features/MatchesSection.tsx`)
+*   La fonction d'enrichissement local `enrichMatches` a été mise à jour pour consommer les fonctions d'aide globales `translateTeamName` et `getTeamFlag`. Elle traduit et applique les drapeaux corrects de manière homogène sur tous les matchs (mockés ou issus d'Odoo) affichés dans l'interface de calendrier.
+*   L'ancienne constante locale `FLAGS` (qui causait l'affichage du drapeau blanc par défaut `🏳️` pour les pays en anglais) a été supprimée au profit des dictionnaires partagés.
+
+### 4. Résultat Visuel Uniforme
+*   **Suppression des drapeaux blancs `🏳️`** : Tous les matchs planifiés affichent désormais leur vrai drapeau emoji au lieu du drapeau blanc générique.
+*   **Cohérence de la langue** : Tous les noms de pays sont traduits en français (ex: "Maroc" au lieu de "Morocco", "Espagne" au lieu de "Spain", "Argentine" au lieu de "Argentina").
+*   **Affichage Windows** : Les pays résolus affichent bien leur abréviation de code pays (`MA`, `ES`, `PT`, `FR`...) conformément à l'affichage standard des drapeaux emojis sur Windows.
+
+
+
 

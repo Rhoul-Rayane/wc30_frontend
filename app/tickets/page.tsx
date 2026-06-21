@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import TicketsSection from "@/components/features/TicketsSection";
 import TarifsSection from "@/components/features/TarifsSection";
 import { useMatches } from "@/lib/hooks/useMatches";
+import { useAuth } from "@/lib/hooks/AuthContext";
 import { Match } from "@/lib/types";
 
 function TicketsContent() {
@@ -17,9 +18,16 @@ function TicketsContent() {
   const searchParams = useSearchParams();
   const activeTab = searchParams.get("tab") || "billets";
   const matchId = searchParams.get("matchId");
+  const { user, loading: authLoading } = useAuth();
 
   const { matches } = useMatches();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && user?.role === 'volunteer') {
+      router.replace('/volunteer/dashboard');
+    }
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (matchId && matches.length > 0) {
@@ -41,6 +49,19 @@ function TicketsContent() {
   const handleNavigateToBooking = () => {
     router.push("/tickets?tab=billets");
   };
+
+  if (authLoading) {
+    return (
+      <div className="text-center py-20 text-zinc-500 font-display">
+        <div className="w-10 h-10 rounded-full border-4 border-[#34d399]/20 border-t-[#34d399] animate-spin mx-auto mb-4" />
+        <span>Vérification de la session...</span>
+      </div>
+    );
+  }
+
+  if (user?.role === 'volunteer') {
+    return null;
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-6 min-h-[900px]">

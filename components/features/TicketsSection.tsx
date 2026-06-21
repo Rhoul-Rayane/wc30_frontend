@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { DEMO_MATCHES, TICKET_CATEGORIES, DISCOUNT_OPTIONS, Match, TicketCategory } from '@/lib/types';
+import { useAuth } from '@/lib/hooks/AuthContext';
 
 interface TicketsSectionProps {
   initialSelectedMatch?: Match | null;
@@ -30,6 +31,7 @@ export interface GeneratedTicket {
   finalPrice: number;
   seatNumbers: string[];
   gate: string;
+  barcode?: string;
 }
 
 export default function TicketsSection({ 
@@ -39,6 +41,7 @@ export default function TicketsSection({
   matches = DEMO_MATCHES,
   ticketCategories = TICKET_CATEGORIES
 }: TicketsSectionProps) {
+  const { user, setAuthModalOpen } = useAuth();
   const [selectedMatch, setSelectedMatch] = useState<Match>(matches[0] || DEMO_MATCHES[0]);
   const [selectedCategory, setSelectedCategory] = useState<TicketCategory>(ticketCategories[2] || TICKET_CATEGORIES[2]);
   const [quantity, setQuantity] = useState<number>(1);
@@ -48,7 +51,101 @@ export default function TicketsSection({
   const [isAgreed, setIsAgreed] = useState<boolean>(false);
   const [errorBox, setErrorBox] = useState<string>("");
 
+  // Pre-populate holder name when user logs in
+  useEffect(() => {
+    if (user && !holderName) {
+      setHolderName(user.name);
+    }
+  }, [user]);
+
   const [activeTicket, setActiveTicket] = useState<GeneratedTicket | null>(null);
+  const [odooTickets, setOdooTickets] = useState<any[]>([]);
+  const [activeTicketIndex, setActiveTicketIndex] = useState<number>(0);
+  const [isLoadingTickets, setIsLoadingTickets] = useState<boolean>(false);
+
+  // Fonction déterministe pour générer un numéro de siège à partir de l'identifiant
+  const getDeterministicSeat = (ticketId: string, category: string, index: number = 0) => {
+    let sum = 0;
+    const str = ticketId || 'TKT';
+    for (let i = 0; i < str.length; i++) {
+      sum += str.charCodeAt(i);
+    }
+    const row = ((sum + index) % 20) + 1;
+    const seat = ((sum * 3 + index) % 40) + 1;
+    const zoneLetter = category === 'vip' ? 'VIP' : category === 'hospitality' ? 'A' : 'B';
+    return `${zoneLetter}-Rang ${row}-Siège ${seat}`;
+  };
+
+  // Charge les billets existants de l'utilisateur depuis Odoo
+  const loadUserTickets = async (name: string) => {
+    setIsLoadingTickets(true);
+    try {
+      const res = await fetch(`/api/tickets?holderName=${encodeURIComponent(name)}`);
+      if (res.ok) {
+        const tickets = await res.json();
+        if (tickets && tickets.length > 0) {
+          // Grouper par le match le plus récent
+          const mostRecentMatchId = tickets[0].match_id[0];
+          const matchTickets = tickets.filter((t: any) => t.match_id[0] === mostRecentMatchId);
+          setOdooTickets(matchTickets);
+          setActiveTicketIndex(0);
+
+          const matchIdStr = `match-${mostRecentMatchId}`;
+          const matchObj = matches.find(m => m.id === matchIdStr);
+          if (matchObj) {
+            setSelectedMatch(matchObj);
+            
+            const odooCat = matchTickets[0].category;
+            const catObj = ticketCategories.find(c => {
+              if (odooCat === 'vip') return c.id === 'cat-1';
+              if (odooCat === 'hospitality') return c.id === 'cat-2';
+              return c.id === 'cat-3';
+            }) || ticketCategories[2];
+            
+            setSelectedCategory(catObj);
+
+            const seatNumbers = matchTickets.map((t: any, idx: number) => getDeterministicSeat(t.name, t.category, idx));
+            const gateList = ["Porte d'Or — A1", "Porte Émeraude — B4", "Porte Ouest — C3", "Porte Sud — D2"];
+            const catIdx = ticketCategories.findIndex(c => c.id === catObj.id);
+            const gate = gateList[catIdx] || "Porte Administrative";
+
+            const generated: GeneratedTicket = {
+              id: matchTickets[0].name,
+              holderName: matchTickets[0].holder_name,
+              matchId: matchIdStr,
+              matchSummary: `${matchObj.homeFlag} ${matchObj.homeTeam} VS ${matchObj.awayTeam} ${matchObj.awayFlag}`,
+              stadium: matchObj.stadium,
+              city: matchObj.city,
+              dateTime: `${matchObj.date} à ${matchObj.time}`,
+              categoryName: catObj.name,
+              quantity: matchTickets.length,
+              discountType: 'Tarif Récupéré',
+              basePrice: catObj.priceMAD,
+              finalPrice: catObj.priceMAD * matchTickets.length,
+              seatNumbers: seatNumbers,
+              gate: gate,
+              barcode: matchTickets[0].barcode
+            };
+            setActiveTicket(generated);
+          }
+        }
+      }
+    } catch (err) {
+      console.error("[TicketsSection] Erreur lors du chargement initial des billets :", err);
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  };
+
+  // Charger les tickets de session au démarrage
+  useEffect(() => {
+    if (user && user.name) {
+      loadUserTickets(user.name);
+    } else {
+      setActiveTicket(null);
+      setOdooTickets([]);
+    }
+  }, [user]);
 
   // États pour la tarification dynamique lab.leapter
   const [bookingWindow, setBookingWindow] = useState<string>("standard");
@@ -191,9 +288,14 @@ export default function TicketsSection({
   }, [selectedCategory, selectedMatch, selectedDiscount, bookingWindow, stadiumFillRate]);
 
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorBox("");
+
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
 
     if (!holderName.trim()) {
       setErrorBox("Veuillez saisir le nom complet du détenteur principal.");
@@ -208,66 +310,93 @@ export default function TicketsSection({
       return;
     }
 
-    // Generate simulated seats
-    const seatPrefixIndex = ticketCategories.indexOf(selectedCategory);
-    const alphabet = ["A", "B", "C", "D", "E", "F"];
-    const seatsList = Array.from({ length: quantity }).map((_, i) => {
-      const row = Math.floor(Math.random() * 20) + 1;
-      const seat = Math.floor(Math.random() * 40) + 1;
-      return `${alphabet[seatPrefixIndex] || "X"}-Row${row}-Siège${seat + i}`;
-    });
+    setIsLoadingTickets(true);
+    try {
+      const categoryCode = selectedCategory.id === 'cat-1'
+        ? 'vip'
+        : selectedCategory.id === 'cat-2'
+          ? 'hospitality'
+          : 'standard';
 
-    const gateList = ["Porte d'Or — A1", "Porte Émeraude — B4", "Porte Ouest — C3", "Porte Sud — D2"];
-    const selectedGate = gateList[seatPrefixIndex] || "Porte Administrative";
+      console.log("[TicketsSection] Soumission de la commande de billet à l'API...");
+      const res = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          matchId: selectedMatch.id,
+          category: categoryCode,
+          holderName: holderName.trim(),
+          quantity: quantity
+        })
+      });
 
-    const ticketId = "WC30-" + Math.floor(100000 + Math.random() * 900000);
+      if (res.ok) {
+        const ticketsCreated = await res.json();
+        if (ticketsCreated && ticketsCreated.length > 0) {
+          setOdooTickets(ticketsCreated);
+          setActiveTicketIndex(0);
 
-    const matchSummary = `${selectedMatch.homeFlag} ${selectedMatch.homeTeam} VS ${selectedMatch.awayTeam} ${selectedMatch.awayFlag}`;
+          const seatNumbers = ticketsCreated.map((t: any, idx: number) => getDeterministicSeat(t.name, t.category, idx));
+          const gateList = ["Porte d'Or — A1", "Porte Émeraude — B4", "Porte Ouest — C3", "Porte Sud — D2"];
+          const catIdx = ticketCategories.findIndex(c => c.id === selectedCategory.id);
+          const gate = gateList[catIdx] || "Porte Administrative";
 
-    const discountTypeName = selectedDiscount === 'discount-resident'
-      ? 'Résident Marocain (-20%)'
-      : selectedDiscount === 'discount-student'
-        ? 'Étudiant (-40%)'
-        : selectedDiscount === 'discount-fifa'
-          ? 'Délégation Officielle FIFA'
-          : 'Plein Tarif';
+          const generated: GeneratedTicket = {
+            id: ticketsCreated[0].name,
+            holderName: ticketsCreated[0].holder_name,
+            matchId: selectedMatch.id,
+            matchSummary: `${selectedMatch.homeFlag} ${selectedMatch.homeTeam} VS ${selectedMatch.awayTeam} ${selectedMatch.awayFlag}`,
+            stadium: selectedMatch.stadium,
+            city: selectedMatch.city,
+            dateTime: `${selectedMatch.date} à ${selectedMatch.time}`,
+            categoryName: selectedCategory.name,
+            quantity: ticketsCreated.length,
+            discountType: selectedDiscount === 'discount-resident'
+              ? 'Résident Marocain (-20%)'
+              : selectedDiscount === 'discount-student'
+                ? 'Étudiant (-40%)'
+                : selectedDiscount === 'discount-fifa'
+                  ? 'Délégation Officielle FIFA'
+                  : 'Plein Tarif',
+            basePrice: baseUnitPrice,
+            finalPrice: finalTotalPrice,
+            seatNumbers: seatNumbers,
+            gate: gate,
+            barcode: ticketsCreated[0].barcode
+          };
 
-    const newTicket: GeneratedTicket = {
-      id: ticketId,
-      holderName: holderName.trim(),
-      matchId: selectedMatch.id,
-      matchSummary,
-      stadium: selectedMatch.stadium,
-      city: selectedMatch.city,
-      dateTime: `${selectedMatch.date} à ${selectedMatch.time}`,
-      categoryName: selectedCategory.name,
-      quantity,
-      discountType: discountTypeName,
-      basePrice: baseUnitPrice,
-      finalPrice: finalTotalPrice,
-      seatNumbers: seatsList,
-      gate: selectedGate
-    };
+          setActiveTicket(generated);
 
-    setActiveTicket(newTicket);
-
-    // Encode string to send to Scanner
-    const serialized = JSON.stringify({
-      id: newTicket.id,
-      holder: newTicket.holderName,
-      match: newTicket.matchSummary,
-      stadium: newTicket.stadium,
-      cat: newTicket.categoryName,
-      qty: newTicket.quantity,
-      price: newTicket.finalPrice,
-      seats: newTicket.seatNumbers.join(', '),
-      gate: newTicket.gate,
-      status: "VALIDE",
-      verified: false
-    });
-
-    // Invoke state update
-    onTicketGenerated(serialized);
+          // Envoyer le token du premier billet pour compatibilité historique
+          const serialized = JSON.stringify({
+            id: generated.id,
+            holder: generated.holderName,
+            match: generated.matchSummary,
+            stadium: generated.stadium,
+            cat: generated.categoryName,
+            qty: generated.quantity,
+            price: generated.finalPrice,
+            seats: generated.seatNumbers.join(', '),
+            gate: generated.gate,
+            status: "VALIDE",
+            verified: false
+          });
+          onTicketGenerated(serialized);
+        } else {
+          setErrorBox("Le serveur n'a renvoyé aucun billet valide.");
+        }
+      } else {
+        const errData = await res.json();
+        setErrorBox(errData.error || "Une erreur est survenue lors de la création de la réservation.");
+      }
+    } catch (err) {
+      console.error("[TicketsSection] Erreur d'achat de billet :", err);
+      setErrorBox("Impossible de contacter le serveur de réservation.");
+    } finally {
+      setIsLoadingTickets(false);
+    }
   };
 
   return (
@@ -564,9 +693,17 @@ export default function TicketsSection({
             <button
               id="buy-btn"
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#34d399] to-[#10b981] font-display font-bold text-[#0a0a0a] hover:opacity-95 text-sm uppercase tracking-wider cursor-pointer shadow-[0_4px_12px_rgba(52,211,153,0.15)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
+              disabled={isLoadingTickets}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#34d399] to-[#10b981] font-display font-bold text-[#0a0a0a] hover:opacity-95 text-sm uppercase tracking-wider cursor-pointer shadow-[0_4px_12px_rgba(52,211,153,0.15)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              🔒 Payer & Générer mon Billet
+              {isLoadingTickets ? (
+                <>
+                  <div className="w-4 h-4 rounded-full border-2 border-[#0a0a0a]/20 border-t-[#0a0a0a] animate-spin" />
+                  Traitement en cours...
+                </>
+              ) : (
+                <>🔒 Payer & Générer mon Billet</>
+              )}
             </button>
           </form>
         </div>
@@ -598,7 +735,7 @@ export default function TicketsSection({
                     🌟 BILLET OFFICIEL DE MATCH
                   </span>
                   <div className="font-display font-black text-white text-base tracking-wider uppercase">
-                    FIFA WORLD CUP 2300 <span className="text-[#34d399]">Morocco</span>
+                    COUPE DU MONDE DE LA FIFA 2030 <span className="text-[#34d399]">MAROC</span>
                   </div>
                   <span className="absolute top-4 right-4 text-[9px] font-mono bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">
                     AUTHENTIQUE
@@ -612,7 +749,7 @@ export default function TicketsSection({
                   <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-[#0a0a0a] border-l border-zinc-800" />
 
                   <span className="text-xs font-mono font-bold bg-[#34d399]/10 text-[#34d399] px-2.5 py-1 rounded mb-3">
-                    🎟️ N° : {activeTicket.id}
+                    🎟️ N° : {odooTickets[activeTicketIndex]?.name || activeTicket.id}
                   </span>
 
                   <span className="text-lg md:text-xl font-display font-black text-white text-center mb-1">
@@ -646,7 +783,9 @@ export default function TicketsSection({
                     </p>
                     <p className="flex justify-between">
                       <span className="text-zinc-500">Quantité :</span> 
-                      <span className="text-white font-bold">{activeTicket.quantity} places</span>
+                      <span className="text-white font-bold">
+                        {activeTicket.quantity} {activeTicket.quantity === 1 ? 'place' : 'places'}
+                      </span>
                     </p>
                     <p className="flex justify-between text-xs border-t border-zinc-800/40 pt-1 mt-1">
                       <span className="text-zinc-500 font-bold">Total Réglé :</span> 
@@ -657,29 +796,53 @@ export default function TicketsSection({
 
                 {/* Simulated QR & Barcode Section */}
                 <div className="p-5 flex flex-col items-center bg-white/3">
-                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2 font-mono">
+                  {/* Swiper / Selector for tickets if quantity > 1 */}
+                  {odooTickets.length > 1 && (
+                    <div className="flex items-center justify-between bg-black/40 border border-zinc-800/80 rounded-xl p-1.5 w-full mb-3 select-none">
+                      <button
+                        type="button"
+                        disabled={activeTicketIndex === 0}
+                        onClick={() => setActiveTicketIndex(activeTicketIndex - 1)}
+                        className="px-2 py-1 bg-zinc-800 hover:bg-[#34d399]/20 hover:text-[#34d399] disabled:opacity-30 disabled:hover:bg-zinc-800 disabled:hover:text-white text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                      >
+                        ◀ Précédent
+                      </button>
+                      <span className="text-[10px] font-mono text-zinc-400 font-bold">
+                        Billet {activeTicketIndex + 1} / {odooTickets.length}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={activeTicketIndex === odooTickets.length - 1}
+                        onClick={() => setActiveTicketIndex(activeTicketIndex + 1)}
+                        className="px-2 py-1 bg-zinc-800 hover:bg-[#34d399]/20 hover:text-[#34d399] disabled:opacity-30 disabled:hover:bg-zinc-800 disabled:hover:text-white text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                      >
+                        Suivant ▶
+                      </button>
+                    </div>
+                  )}
+
+                  <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-2.5 font-mono">
                     SCAN D'ACCÈS NOMINATIF INDIVIDUEL
                   </span>
 
-                  {/* QR Core simulation visual */}
-                  <div className="w-28 h-28 bg-white p-2 rounded-xl flex items-center justify-center border-4 border-[#34d399]/30 relative mb-3">
-                    <div className="relative w-full h-full bg-slate-900 rounded flex flex-wrap p-0.5 overflow-hidden justify-center items-center">
-                      {/* Generates a nice retro QR-pattern grid using a looping matrix */}
-                      <span className="text-[7px] text-emerald-400 leading-none select-none font-mono text-center block tracking-tighter opacity-80 break-all p-1 h-full font-bold">
-                        {`0101-${activeTicket.id}-48-FIFA30-RES-${activeTicket.holderName.replace(/\s+/g, '')}-SECURE-HASH-F871-34D3-FBBF-MAROC`}
-                      </span>
-                      {/* Corners markers */}
-                      <div className="absolute top-1 left-1 w-3.5 h-3.5 bg-emerald-400 border border-black" />
-                      <div className="absolute top-1 right-1 w-3.5 h-3.5 bg-emerald-400 border border-black" />
-                      <div className="absolute bottom-1 left-1 w-3.5 h-3.5 bg-emerald-400 border border-black" />
-                    </div>
+                  {/* Real QR Code */}
+                  <div className="w-32 h-32 bg-white p-1.5 rounded-xl flex items-center justify-center border-4 border-[#34d399]/30 relative mb-3.5 shadow-[0_0_15px_rgba(52,211,153,0.15)]">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(odooTickets[activeTicketIndex]?.barcode || activeTicket.barcode || activeTicket.id)}`}
+                      alt={`QR Code Billet ${odooTickets[activeTicketIndex]?.name || activeTicket.id}`}
+                      className="w-full h-full object-contain"
+                    />
                   </div>
 
                   {/* Seat details */}
                   <div className="text-center font-mono text-xs mb-3 text-zinc-400">
-                    <span className="font-bold text-white">Sièges assignés :</span>{" "}
+                    <span className="font-bold text-white">
+                      {activeTicket.quantity === 1 ? "Siège assigné :" : "Sièges assignés :"}
+                    </span>{" "}
                     <span className="text-[#fbbf24] font-bold text-[10px]">
-                      {activeTicket.seatNumbers.join(", ")}
+                      {activeTicket.quantity === 1 
+                        ? (activeTicket.seatNumbers[activeTicketIndex] || activeTicket.seatNumbers[0]) 
+                        : activeTicket.seatNumbers.join(", ")}
                     </span>
                   </div>
 
@@ -690,21 +853,10 @@ export default function TicketsSection({
                     ))}
                   </div>
                   <span className="text-[8px] font-mono text-zinc-500">
-                    *SECURE-UUID-{activeTicket.id}-SHA256*
+                    *SECURE-UUID-{odooTickets[activeTicketIndex]?.barcode || activeTicket.barcode || activeTicket.id}-SHA256*
                   </span>
                 </div>
               </div>
-
-              {/* Magical shortcut button to load ticket in scanner */}
-              <button
-                id="preload-scanner-btn"
-                onClick={() => {
-                  onNavigateToScanner();
-                }}
-                className="w-full py-2.5 rounded-xl bg-[#fbbf24] text-[#0a0a0a] hover:bg-[#fbbf24]/90 font-display font-semibold transition-all text-xs flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(251,191,36,0.2)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950"
-              >
-                📲 Envoyer ce billet vers le scanneur QR 💥
-              </button>
             </div>
           ) : (
             <div className="glass-panel rounded-2xl p-8 border border-zinc-800 border-dashed text-center text-zinc-500 min-h-[460px] flex flex-col justify-center items-center">

@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from 'react';
-import { Match } from '@/lib/types';
+import { Match, translateTeamName, getTeamFlag } from '@/lib/types';
 import { MapPin, Flame } from 'lucide-react';
 
 interface MatchesSectionProps {
@@ -101,7 +101,7 @@ const FIXTURES_DATA: CompMatch[] = [
   {
     id: "match-8",
     homeTeam: "Angleterre",
-    homeFlag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    homeFlag: "🇬🇧",
     awayTeam: "Sénégal",
     awayFlag: "🇸🇳",
     phase: "Phase de groupes",
@@ -262,8 +262,20 @@ export default function MatchesSection({
   const enrichMatches = (items: Match[]): CompMatch[] => {
     return items.map(item => {
       const comp = item as any;
+      
+      const homeTeam = translateTeamName(item.homeTeam);
+      const awayTeam = translateTeamName(item.awayTeam);
+      const homeFlag = item.homeFlag || getTeamFlag(homeTeam);
+      const awayFlag = item.awayFlag || getTeamFlag(awayTeam);
+
       if (comp.phaseCategory && comp.status) {
-        return comp as CompMatch;
+        return {
+          ...comp,
+          homeTeam,
+          awayTeam,
+          homeFlag,
+          awayFlag
+        } as CompMatch;
       }
       let day = '15';
       let month = 'Juin';
@@ -285,21 +297,17 @@ export default function MatchesSection({
       } else if (phaseLower.includes('finale') || phaseLower.includes('3e')) {
         phaseCategory = 'Finale';
       }
-      const FLAGS: Record<string, string> = {
-        'Maroc': '🇲🇦', 'Portugal': '🇵🇹', 'Brésil': '🇧🇷', 'Allemagne': '🇩🇪',
-        'France': '🇫🇷', 'Argentine': '🇦🇷', 'Uruguay': '🇺🇾', 'Angleterre': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-        'Sénégal': '🇸🇳', 'Belgique': '🇧🇪', 'Croatie': '🇭🇷', 'Canada': '🇨🇦',
-        'Espagne': '🇪🇸', 'Cameroun': '🇨🇲', 'Japon': '🇯🇵', 'Italie': '🇮🇹'
-      };
       return {
         ...item,
+        homeTeam,
+        awayTeam,
         status: item.score ? 'Terminé' : 'Planifié',
         group: comp.group || 'A',
         day,
         month,
         phaseCategory,
-        homeFlag: item.homeFlag || FLAGS[item.homeTeam] || '🏳️',
-        awayFlag: item.awayFlag || FLAGS[item.awayTeam] || '🏳️',
+        homeFlag,
+        awayFlag,
       } as CompMatch;
     });
   };
@@ -314,7 +322,14 @@ export default function MatchesSection({
   // React to initialStadiumFilter changes
   React.useEffect(() => {
     if (initialStadiumFilter) {
-      setStadiumFilter(initialStadiumFilter);
+      let mappedFilter = initialStadiumFilter;
+      // Normaliser la valeur du filtre initial pour qu'elle corresponde aux clés du select
+      if (initialStadiumFilter === 'Grand Stade de Rabat' || initialStadiumFilter.includes('Moulay') || initialStadiumFilter.includes('Rabat')) {
+        mappedFilter = 'Stade Prince Moulay Abdellah';
+      } else if (initialStadiumFilter === 'Grand Stade de Fès' || initialStadiumFilter.includes('Fès') || initialStadiumFilter.includes('Fes')) {
+        mappedFilter = 'Stade de Fès';
+      }
+      setStadiumFilter(mappedFilter);
       if (initialStadiumFilter !== 'Tous') {
         setPhaseFilter('Tous');
         setGroupFilter('Tous');
@@ -349,7 +364,18 @@ export default function MatchesSection({
     const matchPhase = phaseFilter === 'Tous' || match.phaseCategory === phaseFilter;
 
     // 2. Stadium Filter
-    const matchStadium = stadiumFilter === 'Tous' || match.stadium === stadiumFilter;
+    const normalizeStadiumName = (name: string): string => {
+      if (!name) return '';
+      const lower = name.toLowerCase();
+      if (lower.includes('rabat') || lower.includes('moulay')) return 'rabat';
+      if (lower.includes('fès') || lower.includes('fes')) return 'fes';
+      if (lower.includes('hassan') || lower.includes('casablanca')) return 'casablanca';
+      if (lower.includes('tanger')) return 'tanger';
+      if (lower.includes('marrakech')) return 'marrakech';
+      if (lower.includes('agadir')) return 'agadir';
+      return lower.replace(/[^a-z0-9]/g, '');
+    };
+    const matchStadium = stadiumFilter === 'Tous' || normalizeStadiumName(match.stadium) === normalizeStadiumName(stadiumFilter);
 
     // 3. Group Filter
     const matchGroup = groupFilter === 'Tous' || match.group === groupFilter;
@@ -447,9 +473,9 @@ export default function MatchesSection({
                 >
                   <option value="Tous" className="bg-[#121214] text-zinc-400">Tous les stades</option>
                   <option value="Grand Stade Hassan II" className="bg-[#121214] text-zinc-300">Grand Stade Hassan II (Casablanca)</option>
-                  <option value="Grand Stade de Rabat" className="bg-[#121214] text-zinc-300">Grand Stade de Rabat (Rabat)</option>
+                  <option value="Stade Prince Moulay Abdellah" className="bg-[#121214] text-zinc-300">Stade Prince Moulay Abdellah (Rabat)</option>
                   <option value="Grand Stade de Tanger" className="bg-[#121214] text-zinc-300">Grand Stade de Tanger (Tanger)</option>
-                  <option value="Grand Stade de Fès" className="bg-[#121214] text-zinc-300">Grand Stade de Fès (Fès)</option>
+                  <option value="Stade de Fès" className="bg-[#121214] text-zinc-300">Stade de Fès (Fès)</option>
                   <option value="Grand Stade de Marrakech" className="bg-[#121214] text-zinc-300">Grand Stade de Marrakech (Marrakech)</option>
                   <option value="Grand Stade d'Agadir" className="bg-[#121214] text-zinc-300">Grand Stade d'Agadir (Agadir)</option>
                 </select>

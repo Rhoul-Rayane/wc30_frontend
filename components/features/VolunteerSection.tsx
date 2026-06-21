@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   User, 
   Target, 
@@ -21,6 +21,7 @@ import {
   Award,
   ChevronDown
 } from 'lucide-react';
+import { useAuth } from '@/lib/hooks/AuthContext';
 
 interface VolunteerSectionProps {
   onAddVolunteer: (data: {
@@ -48,6 +49,7 @@ interface VolunteerSectionProps {
 }
 
 export default function VolunteerSection({ onAddVolunteer, currentCount, onNavigate }: VolunteerSectionProps) {
+  const { user } = useAuth();
   // Wizard steps: 1 (Identité), 2 (Compétences), 3 (Disponibilité), 4 (Confirmation)
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [validationError, setValidationError] = useState<string>('');
@@ -55,6 +57,15 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
   // Step 1: Identity Data
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+
+  // Sync with global auth session
+  useEffect(() => {
+    if (user) {
+      setFullName(user.name);
+      setEmail(user.email);
+    }
+  }, [user]);
+
   const [phone, setPhone] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [gender, setGender] = useState<'Homme' | 'Femme'>('Homme');
@@ -483,7 +494,8 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   placeholder="Ex: Youssef Benjelloun"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner"
+                  disabled={!!user}
+                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner disabled:opacity-70 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -497,7 +509,8 @@ export default function VolunteerSection({ onAddVolunteer, currentCount, onNavig
                   placeholder="Ex: youssef@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner"
+                  disabled={!!user}
+                  className="w-full px-4 py-3 rounded-xl bg-black/45 border border-zinc-800 text-white focus:outline-none focus:border-[#33d399] focus-visible:ring-2 focus-visible:ring-[#34d399] focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950 transition-all text-sm shadow-inner disabled:opacity-70 disabled:cursor-not-allowed"
                 />
               </div>
 
